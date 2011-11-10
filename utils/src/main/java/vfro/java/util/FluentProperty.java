@@ -1,6 +1,8 @@
 package vfro.java.util;
 
-public class FluentProperty<Owner, Value> extends Property<Value> {
+public class FluentProperty<Owner, Value>
+	extends Property<Value>
+	implements IFluentProperty<Owner, Value> {
 
 	private Owner owner;
 
@@ -9,6 +11,7 @@ public class FluentProperty<Owner, Value> extends Property<Value> {
 		this.owner = owner;
 	}
 
+	@Override
 	public Owner with(Value value) {
 		this.set(value);
 		return this.owner;

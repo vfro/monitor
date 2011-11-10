@@ -87,6 +87,12 @@ public class PropertyTest {
 	public void propertyHashCode() {
 		String value = new String("Property");
 		Property<String> property = new Property<String>(value);
-		assertEquals(property.hashCode(), value.hashCode());
+		assertEquals(property.hashCode(), value.hashCode(), "Test Property.hashCode() equals to value has code.");
+	}
+
+	@Test
+	public void propertyHashCodeForNull() {
+		Property<String> property = new Property<String>(null);
+		assertTrue(property.hashCode() == 0, "Test Property.hashCode() for null value.");
 	}
 }

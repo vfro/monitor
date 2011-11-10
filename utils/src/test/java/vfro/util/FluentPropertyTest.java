@@ -32,6 +32,6 @@ public class FluentPropertyTest {
 		FluentPropertyTest withResult = stringProperty.with(stringValue);
 
 		assertTrue(stringValue == stringProperty.get(), "Test FluentProperty.get() method with value passed into FluentProperty.with().");
-		assertTrue(withResult == this, "Test FluentProperty.get() method return value.");
+		assertTrue(withResult == this, "Test FluentProperty.with() method return value.");
 	}
 }
