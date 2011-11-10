@@ -14,6 +14,10 @@ public class FluentProperty<Owner, Value>
 	@Override
 	public Owner with(Value value) {
 		this.set(value);
+		return this.with();
+	}
+
+	protected Owner with() {
 		return this.owner;
 	}
 }
