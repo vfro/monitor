@@ -20,4 +20,8 @@ public class FluentDelegateProperty<Owner, Value>
 		this.set(value);
 		return this.owner;
 	}
+
+	protected Owner with() {
+		return this.owner;
+	}
 }

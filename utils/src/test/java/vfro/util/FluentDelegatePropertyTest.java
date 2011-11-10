@@ -12,26 +12,32 @@ public class FluentDelegatePropertyTest {
 	@Test
 	public void fluentDelegatePropertyConstructorGet() {
 		String stringValue = "FluentProperty";
-		FluentDelegateProperty<FluentDelegatePropertyTest, String> stringProperty = new FluentDelegateProperty<FluentDelegatePropertyTest, String>(this, stringValue);
-		assertTrue(stringValue == stringProperty.get(), "Test FluentDelegateProperty.get() method with value passed into FluentDelegateProperty constructor.");
+		FluentDelegateProperty<FluentDelegatePropertyTest, String> stringProperty =
+			new FluentDelegateProperty<FluentDelegatePropertyTest, String>(this, stringValue);
+		assertTrue(stringValue == stringProperty.get(),
+			"Test FluentDelegateProperty.get() method with value passed into FluentDelegateProperty constructor.");
 	}
 
 	@Test
 	public void fluentDelegatePropertySetGet() {
 		String stringValue = "FluentDelegateProperty";
-		FluentDelegateProperty<FluentDelegatePropertyTest, String> stringProperty = new FluentDelegateProperty<FluentDelegatePropertyTest, String>(this, null);
+		FluentDelegateProperty<FluentDelegatePropertyTest, String> stringProperty =
+			new FluentDelegateProperty<FluentDelegatePropertyTest, String>(this, null);
 		stringProperty.set(stringValue);
 
-		assertTrue(stringValue == stringProperty.get(), "Test FluentDelegateProperty.get() method with value passed into FluentDelegateProperty.set().");
+		assertTrue(stringValue == stringProperty.get(),
+			"Test FluentDelegateProperty.get() method with value passed into FluentDelegateProperty.set().");
 	}
 
 	@Test
 	public void fluentDelegatePropertyWithGet() {
 		String stringValue = "FluentDelegateProperty";
-		FluentDelegateProperty<FluentDelegatePropertyTest, String> stringProperty = new FluentDelegateProperty<FluentDelegatePropertyTest, String>(this, null);
+		FluentDelegateProperty<FluentDelegatePropertyTest, String> stringProperty =
+			new FluentDelegateProperty<FluentDelegatePropertyTest, String>(this, null);
 		FluentDelegatePropertyTest withResult = stringProperty.with(stringValue);
 
-		assertTrue(stringValue == stringProperty.get(), "Test FluentDelegateProperty.get() method with value passed into FluentDelegateProperty.with().");
+		assertTrue(stringValue == stringProperty.get(),
+			"Test FluentDelegateProperty.get() method with value passed into FluentDelegateProperty.with().");
 		assertTrue(withResult == this, "Test FluentDelegateProperty.with() method return value.");
 	}
 }
