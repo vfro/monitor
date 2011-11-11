@@ -1,4 +1,4 @@
-package vfro.java.util;
+package c3h8.java.util;
 
 public class Property<Value> {
 	private Value value;
