@@ -7,6 +7,30 @@ import java.util.WeakHashMap;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+/**
+ * A property with support of delegation a value to other properties.
+ * Each time when a value of delegate property is changes it will be delegated to
+ * all subscribers.<p>
+ *
+ * <pre>
+ * public class Author {
+ *    public final DelegateProperty&lt;String&gt; id = new DelegateProperty&lt;String&gt;(null);
+ *    // ...
+ * }
+ *
+ * public class Book {
+ *    public final Property&lt;String&gt; authorId = new Property&lt;String&gt;();
+ *    // ...
+ *    public Book(Author ofAuthor) {
+ *       authorId.id.subscribe(this.authorId);
+ *    }
+ * }
+ * </pre>
+ * Delegate property stores weak references to all subscribers so it is not necessary to unsubscribe
+ * before subscriber becomes unreachable.<p>
+ * Delegate property supports loops. You can tie several properties into a loop with {@link #subscribe}
+ * and setting value to any of them will cause the value to be setted to all properties in a loop.
+ */
 public class DelegateProperty<Value> extends Property<Value> {
 
 	private Lock subscribersGuard = new ReentrantLock();
@@ -19,10 +43,18 @@ public class DelegateProperty<Value> extends Property<Value> {
 		}
 	};
 
+	/**
+	 * Create new delegate property object.
+	 * @param value Initial value of delegate property.
+	 */
 	public DelegateProperty(Value value) {
 		super(value);
 	}
 
+	/**
+	 * Set a new value for delegate property as well as all property subscribers.
+	 * @param value new value of a property.
+	 */
 	@Override
 	public void set(Value value) {
 		if (this.isLoop.get()) {
@@ -56,6 +88,13 @@ public class DelegateProperty<Value> extends Property<Value> {
 		}
 	}
 
+	/**
+	 * Subscribe to a changing value of the property. Subscribers may be tied in a loop.
+	 * The value of the property will be setted to subscriber directly after subscription and
+	 * each time when it will be changed after that.
+	 * @param property subscriber.
+	 * @return {@code true} if subscriber wasn't subscribed to this property yet. Otherwise {@code false}.
+	 */
 	public boolean subscribe(Property<Value> property) {
 		boolean result;
 		try {
@@ -69,6 +108,12 @@ public class DelegateProperty<Value> extends Property<Value> {
 		return result;
 	}
 
+	/**
+	 * Unsubscribe from a property.
+	 * @param property subscriber.
+	 * @return {@code true} if subscriber was subscribed to this property and sucessfuly
+	 * unscubscribed. Otherwise {@code false}.
+	 */
 	public boolean unsubscribe(Property<Value> property) {
 		boolean result;
 		try {
