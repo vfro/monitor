@@ -1,9 +1,9 @@
 package c3h8.java.util;
 
 /**
- * Property base class. {@code Property} instances should be
- * exposed as a public final fields of a class. It gives potential
- * ability to override set/get methods later but avoid defining
+ * Property base class.
+ * {@code Property} instances should be exposed as a public final fields of a class.
+ * It gives potential ability to override set/get methods later but avoid defining
  * (and thus testing) getters and setters of each in each class.<p>
  * <pre>
  * public class Person {
@@ -33,6 +33,15 @@ package c3h8.java.util;
 public class Property<Value> {
 	private Value value;
 
+	/**
+	 * Constructor for {@code Property} which creates property instance initialized by 
+	 * some specified value.
+	 * There is intentionally no default constructor to
+	 * force users of {@code Property} pass {@code null} at this one and thus notice that
+	 * this may cause {@code NullPointerException} when using Value methods over getter.
+	 * For lazy inialization of a {@code Property} pass {@code null} to this constructor
+	 * and redefine getter to set some valid value if {@code supper.get()} returns {@code null}.
+	 */
 	public Property(Value value) {
 		this.value = value;
 	}
