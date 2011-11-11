@@ -5,7 +5,7 @@
 	<groupId>c3h8.java.util</groupId>
 	<artifactId>propane</artifactId>
 	<packaging>jar</packaging>
-	<version>0.2-SNAPSHOT</version>
+	<version>0.3-SNAPSHOT</version>
 	<name>Propane Project</name>
 
 	<properties>
