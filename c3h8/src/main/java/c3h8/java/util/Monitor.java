@@ -8,40 +8,21 @@ import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
- * Monitor is a kind of property which can be used for concurent access
- * to a property value with ability to wait until the value becomes into
- * some certain state (defined by a {@link Comparator}).
+ * Monitor is a special kind of property which can be used for concurent
+ * access to a value with and ability to wait until the value becomes into
+ * some certain state (defined by a {@link Checker}).
  */
 public class Monitor<Value> {
 	private Value value;
 
-	private Condition rtouch = null;
-	private Condition wtouch = null;
+	private Condition checkEvent = null;
 
-	// must be called only inside write lock
-	private void touch() {
-		this.wtouch.signalAll();
-		try {
-			this.rlock.get().lock();
-			this.rtouch.signalAll();
-		}
-		finally {
-			this.rlock.get().unlock();
-		}
-	}
-
-	public final Property<Lock> rlock = new Property<Lock>(null) {
-		@Override
-		public void set(Lock lock) {
-			Monitor.this.rtouch = lock.newCondition();
-			super.set(lock);
-		}
-	};
+	public final Property<Lock> rlock = new Property<Lock>(null);
 
 	public final Property<Lock> wlock = new Property<Lock>(null) {
 		@Override
 		public void set(Lock lock) {
-			Monitor.this.wtouch = lock.newCondition();
+			Monitor.this.checkEvent = lock.newCondition();
 			super.set(lock);
 		}
 	};
@@ -52,9 +33,10 @@ public class Monitor<Value> {
 	 */
 	public Monitor(Value value) {
 		this.value = value;
+
 		ReadWriteLock rwlock = new ReentrantReadWriteLock();
-		rlock.set(rwlock.readLock());
-		wlock.set(rwlock.writeLock());
+		this.rlock.set(rwlock.readLock());
+		this.wlock.set(rwlock.writeLock());
 	}
 
 	public void readAccess(Accessor<Value> accessor) {
@@ -69,67 +51,96 @@ public class Monitor<Value> {
 
 	public void readAccess(Accessor<Value> accessor, Checker<Value> checker)
 		throws InterruptedException {
+		Lock lockedObject = null;
 		try {
-			this.rlock.get().lock();
+			lockedObject = this.wlock.get();
+			lockedObject.lock();
 			while (!checker.check(this.value)) {
-				rtouch.await();
+				this.checkEvent.await();
 			}
+
+			this.rlock.get().lock();
+			lockedObject.unlock();
+			lockedObject = this.rlock.get();
+
 			accessor.access(this.value);
 		}
 		finally {
-			this.rlock.get().unlock();
+			lockedObject.unlock();
 		}
 	}
 
 	public boolean readAccess(Accessor<Value> accessor, Checker<Value> checker, long time, TimeUnit unit)
 		throws InterruptedException {
+		Lock lockedObject = null;
 		try {
-			this.rlock.get().lock();
+			lockedObject = this.wlock.get();
+			lockedObject.lock();
 			while (!checker.check(this.value)) {
-				if (!rtouch.await(time, unit)) {
+				if (!this.checkEvent.await(time, unit)) {
 					return false;
 				}
 			}
+
+			this.rlock.get().lock();
+			lockedObject.unlock();
+			lockedObject = this.rlock.get();
+
 			accessor.access(this.value);
 		}
 		finally {
-			this.rlock.get().unlock();
+			lockedObject.unlock();
 		}
 		return true;
 	}
 
 	public long readAccess(Accessor<Value> accessor, Checker<Value> checker, long nanosTimeout)
 		throws InterruptedException {
+		Lock lockedObject = null;
 		long result = 0;
 		try {
-			this.rlock.get().lock();
+			lockedObject = this.wlock.get();
+			lockedObject.lock();
 			while (!checker.check(this.value)) {
-				result = rtouch.awaitNanos(nanosTimeout);
+				result = this.checkEvent.awaitNanos(nanosTimeout);
 				if (result <= 0) {
 					return result;
 				}
 			}
+
+			this.rlock.get().lock();
+			lockedObject.unlock();
+			lockedObject = this.rlock.get();
+
 			accessor.access(this.value);
 		}
 		finally {
-			this.rlock.get().unlock();
+			lockedObject.unlock();
 		}
 		return result;
 	}
 
 	public boolean readAccess(Accessor<Value> accessor, Checker<Value> checker, Date deadline)
 		throws InterruptedException {
+		Lock lockedObject = null;
 		try {
-			this.rlock.get().lock();
+			lockedObject = this.wlock.get();
+			lockedObject.lock();
+
 			while (!checker.check(this.value)) {
-				if (!rtouch.awaitUntil(deadline)) {
+				if (!this.checkEvent.awaitUntil(deadline)) {
 					return false;
 				}
 			}
+
+			this.rlock.get().lock();
+			lockedObject.unlock();
+			lockedObject = this.rlock.get();
+
 			accessor.access(this.value);
 		}
 		finally {
-			this.rlock.get().unlock();
+			lockedObject.unlock();
 		}
 		return true;
 	}
@@ -139,10 +150,10 @@ public class Monitor<Value> {
 		try {
 			this.wlock.get().lock();
 			while (!checker.check(this.value)) {
-				wtouch.await();
+				this.checkEvent.await();
 			}
 			this.value = accessor.access(this.value);
-			this.touch();
+			this.checkEvent.signalAll();
 		}
 		finally {
 			this.wlock.get().unlock();
@@ -154,12 +165,12 @@ public class Monitor<Value> {
 		try {
 			this.wlock.get().lock();
 			while (!checker.check(this.value)) {
-				if (!wtouch.await(time, unit)) {
+				if (!this.checkEvent.await(time, unit)) {
 					return false;
 				}
 			}
 			this.value = accessor.access(this.value);
-			this.touch();
+			this.checkEvent.signalAll();
 		}
 		finally {
 			this.wlock.get().unlock();
@@ -173,13 +184,13 @@ public class Monitor<Value> {
 		try {
 			this.wlock.get().lock();
 			while (!checker.check(this.value)) {
-				result = wtouch.awaitNanos(nanosTimeout);
+				result = this.checkEvent.awaitNanos(nanosTimeout);
 				if (result <= 0) {
 					return result;
 				}
 			}
 			this.value = accessor.access(this.value);
-			this.touch();
+			this.checkEvent.signalAll();
 		}
 		finally {
 			this.wlock.get().unlock();
@@ -192,12 +203,12 @@ public class Monitor<Value> {
 		try {
 			this.wlock.get().lock();
 			while (!checker.check(this.value)) {
-				if (!wtouch.awaitUntil(deadline)) {
+				if (!this.checkEvent.awaitUntil(deadline)) {
 					return false;
 				}
 			}
 			this.value = accessor.access(this.value);
-			this.touch();
+			this.checkEvent.signalAll();
 		}
 		finally {
 			this.wlock.get().unlock();
@@ -209,7 +220,7 @@ public class Monitor<Value> {
 		try {
 			this.wlock.get().lock();
 			this.value = accessor.access(this.value);
-			this.touch();
+			this.checkEvent.signalAll();
 		}
 		finally {
 			rlock.get().unlock();
@@ -220,7 +231,7 @@ public class Monitor<Value> {
 		try {
 			this.wlock.get().lock();
 			this.value = value;
-			this.touch();
+			this.checkEvent.signalAll();
 		}
 		finally {
 			this.wlock.get().unlock();
