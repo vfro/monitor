@@ -14,7 +14,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  * some certain state (defined by a {@link Checker}).
  */
 public class Monitor<Value> {
-	private Value value;
+	protected Property<Value> rawValue;
 
 	private Condition checkEvent = null;
 
@@ -33,7 +33,7 @@ public class Monitor<Value> {
 	 * @param value initial value of a monitor.
 	 */
 	public Monitor(Value value) {
-		this.value = value;
+		this.rawValue = new Property<Value>(value);
 
 		ReadWriteLock rwlock = new ReentrantReadWriteLock();
 		this.rlock.set(rwlock.readLock());
@@ -43,7 +43,7 @@ public class Monitor<Value> {
 	public void readAccess(Accessor<Value> accessor) {
 		try {
 			this.rlock.get().lock();
-			accessor.access(this.value);
+			accessor.access(this.rawValue.get());
 		}
 		finally {
 			this.rlock.get().unlock();
@@ -56,7 +56,7 @@ public class Monitor<Value> {
 		try {
 			lockedObject = this.wlock.get();
 			lockedObject.lock();
-			while (!checker.check(this.value)) {
+			while (!checker.check(this.rawValue.get())) {
 				this.checkEvent.await();
 			}
 
@@ -64,7 +64,7 @@ public class Monitor<Value> {
 			lockedObject.unlock();
 			lockedObject = this.rlock.get();
 
-			accessor.access(this.value);
+			accessor.access(this.rawValue.get());
 		}
 		finally {
 			lockedObject.unlock();
@@ -98,7 +98,7 @@ public class Monitor<Value> {
 				return origin + nanosTimeout - System.nanoTime();
 			}
 
-			while (!checker.check(this.value)) {
+			while (!checker.check(this.rawValue.get())) {
 				timeLeft = origin + nanosTimeout - System.nanoTime();
 				result = this.checkEvent.awaitNanos(timeLeft);
 				if (result <= 0) {
@@ -110,7 +110,7 @@ public class Monitor<Value> {
 			aquiredLock.unlock();
 			aquiredLock = this.rlock.get();
 
-			accessor.access(this.value);
+			accessor.access(this.rawValue.get());
 		}
 		finally {
 			aquiredLock.unlock();
@@ -122,10 +122,10 @@ public class Monitor<Value> {
 		throws InterruptedException {
 		try {
 			this.wlock.get().lock();
-			while (!checker.check(this.value)) {
+			while (!checker.check(this.rawValue.get())) {
 				this.checkEvent.await();
 			}
-			this.value = accessor.access(this.value);
+			this.rawValue.set(accessor.access(this.rawValue.get()));
 			this.checkEvent.signalAll();
 		}
 		finally {
@@ -161,7 +161,7 @@ public class Monitor<Value> {
 				return origin + nanosTimeout - System.nanoTime();
 			}
 
-			while (!checker.check(this.value)) {
+			while (!checker.check(this.rawValue.get())) {
 				timeLeft = origin + nanosTimeout - System.nanoTime();
 				result = this.checkEvent.awaitNanos(timeLeft);
 				if (result <= 0) {
@@ -169,7 +169,7 @@ public class Monitor<Value> {
 				}
 			}
 
-			this.value = accessor.access(this.value);
+			this.rawValue.set(accessor.access(this.rawValue.get()));
 			this.checkEvent.signalAll();
 		}
 		finally {
@@ -183,7 +183,7 @@ public class Monitor<Value> {
 	public void writeAccess(Accessor<Value> accessor) {
 		try {
 			this.wlock.get().lock();
-			this.value = accessor.access(this.value);
+			this.rawValue.set(accessor.access(this.rawValue.get()));
 			this.checkEvent.signalAll();
 		}
 		finally {
@@ -194,7 +194,7 @@ public class Monitor<Value> {
 	public void set(Value value) {
 		try {
 			this.wlock.get().lock();
-			this.value = value;
+			this.rawValue.set(value);
 			this.checkEvent.signalAll();
 		}
 		finally {

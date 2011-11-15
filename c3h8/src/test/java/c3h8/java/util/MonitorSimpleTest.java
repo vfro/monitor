@@ -1,5 +1,10 @@
 package c3h8.java.util;
 
+import java.util.LinkedList;
+import java.util.List;
+
+import java.util.Date;
+import java.util.Calendar;
 import java.util.concurrent.TimeUnit;
 
 import org.testng.annotations.Test;
@@ -7,6 +12,7 @@ import org.testng.annotations.Test;
 import static org.testng.Assert.fail;
 import static org.testng.Assert.assertTrue;
 import static org.testng.Assert.assertFalse;
+import static org.testng.Assert.assertEquals;
 
 public class MonitorSimpleTest {
 	public MonitorSimpleTest() {
@@ -56,6 +62,158 @@ public class MonitorSimpleTest {
 				return null;
 			}
 		});
+	}
+
+	@Test
+	public void monitorReadAccessCannotChangeValue() {
+		final List<Object> accessed = new LinkedList<Object>();
+		final String initialValue = "initial";
+		final String modifiedValue = "modified";
+		Monitor<String> monitor = new Monitor<String>(initialValue);
+		monitor.readAccess(new Accessor<String>() {
+			@Override
+			public String access(String value) {
+				accessed.add(value);
+				return modifiedValue;
+			}
+		});
+		monitor.readAccess(new Accessor<String>() {
+			@Override
+			public String access(String value) {
+				assertTrue(initialValue == value, "Test Monitor.readAccess() cannot change value.");
+				return null;
+			}
+		});
+		assertEquals(accessed.size(), 1, "Test Monitor.readAccess() accessed value properly");
+		assertEquals(accessed.get(0), initialValue, "Test Monitor.readAccess() accessed proper value");
+	}
+
+	@Test
+	public void monitorReadAccessWithCheckerCannotChangeValue() throws InterruptedException {
+		final List<Object> accessed = new LinkedList<Object>();
+		final String initialValue = "initial";
+		final String modifiedValue = "modified";
+		Monitor<String> monitor = new Monitor<String>(initialValue);
+		monitor.readAccess(
+			new Accessor<String>() {
+				@Override
+				public String access(String value) {
+					accessed.add(value);
+					return modifiedValue;
+				}
+			},
+			new Checker<String>() {
+				@Override
+				public boolean check(String value) {
+					return true;
+				}
+			}
+		);
+		monitor.readAccess(new Accessor<String>() {
+			@Override
+			public String access(String value) {
+				assertTrue(initialValue == value, "Test Monitor.readAccess() with Checker cannot change value.");
+				return null;
+			}
+		});
+		assertEquals(accessed.size(), 1, "Test Monitor.readAccess() with Checker accessed value properly");
+		assertEquals(accessed.get(0), initialValue, "Test Monitor.readAccess() with Checker accessed proper value");
+	}
+
+	@Test
+	public void monitorReadAccessNanosCannotChangeValue() throws InterruptedException {
+		final List<Object> accessed = new LinkedList<Object>();
+		final String initialValue = "initial";
+		final String modifiedValue = "modified";
+		Monitor<String> monitor = new Monitor<String>(initialValue);
+		monitor.readAccess(
+			new Accessor<String>() {
+				@Override
+				public String access(String value) {
+					accessed.add(value);
+					return modifiedValue;
+				}
+			},
+			new Checker<String>() {
+				@Override
+				public boolean check(String value) {
+					return true;
+				}
+			}, 1000
+		);
+		monitor.readAccess(new Accessor<String>() {
+			@Override
+			public String access(String value) {
+				assertTrue(initialValue == value, "Test Monitor.readAccess() with Nanoseconds cannot change value.");
+				return null;
+			}
+		});
+		assertEquals(accessed.size(), 1, "Test Monitor.readAccess() with Nanoseconds accessed value properly");
+		assertEquals(accessed.get(0), initialValue, "Test Monitor.readAccess() with Nanoseconds accessed proper value");
+	}
+
+	@Test
+	public void monitorReadAccessMillisCannotChangeValue() throws InterruptedException {
+		final List<Object> accessed = new LinkedList<Object>();
+		final String initialValue = "initial";
+		final String modifiedValue = "modified";
+		Monitor<String> monitor = new Monitor<String>(initialValue);
+		monitor.readAccess(
+			new Accessor<String>() {
+				@Override
+				public String access(String value) {
+					accessed.add(value);
+					return modifiedValue;
+				}
+			},
+			new Checker<String>() {
+				@Override
+				public boolean check(String value) {
+					return true;
+				}
+			}, 1000, TimeUnit.MILLISECONDS
+		);
+		monitor.readAccess(new Accessor<String>() {
+			@Override
+			public String access(String value) {
+				assertTrue(initialValue == value, "Test Monitor.readAccess() with Milliseconds cannot change value.");
+				return null;
+			}
+		});
+		assertEquals(accessed.size(), 1, "Test Monitor.readAccess() with Milliseconds accessed value properly");
+		assertEquals(accessed.get(0), initialValue, "Test Monitor.readAccess() with Milliseconds accessed proper value");
+	}
+
+	@Test
+	public void monitorReadAccessDateCannotChangeValue() throws InterruptedException {
+		final List<Object> accessed = new LinkedList<Object>();
+		final String initialValue = "initial";
+		final String modifiedValue = "modified";
+		Monitor<String> monitor = new Monitor<String>(initialValue);
+		monitor.readAccess(
+			new Accessor<String>() {
+				@Override
+				public String access(String value) {
+					accessed.add(value);
+					return modifiedValue;
+				}
+			},
+			new Checker<String>() {
+				@Override
+				public boolean check(String value) {
+					return true;
+				}
+			}, new Date(Calendar.getInstance().getTimeInMillis() + 1000)
+		);
+		monitor.readAccess(new Accessor<String>() {
+			@Override
+			public String access(String value) {
+				assertTrue(initialValue == value, "Test Monitor.readAccess() with Date cannot change value.");
+				return null;
+			}
+		});
+		assertEquals(accessed.size(), 1, "Test Monitor.readAccess() with Date ccessed value properly");
+		assertEquals(accessed.get(0), initialValue, "Test Monitor.readAccess() with Date accessed proper value");
 	}
 
 	@Test
