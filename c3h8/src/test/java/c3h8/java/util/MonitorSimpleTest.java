@@ -2,12 +2,10 @@ package c3h8.java.util;
 
 import org.testng.annotations.Test;
 
-import static org.testng.Assert.assertEquals;
-import static org.testng.Assert.assertFalse;
 import static org.testng.Assert.assertTrue;
 
-public class MonitorTest {
-	public MonitorTest() {
+public class MonitorSimpleTest {
+	public MonitorSimpleTest() {
 	}
 
 	@Test
