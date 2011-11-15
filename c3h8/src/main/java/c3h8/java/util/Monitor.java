@@ -223,7 +223,7 @@ public class Monitor<Value> {
 			this.checkEvent.signalAll();
 		}
 		finally {
-			rlock.get().unlock();
+			this.wlock.get().unlock();
 		}
 	}
 
