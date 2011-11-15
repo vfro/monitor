@@ -245,6 +245,90 @@ public class MonitorSimpleTest {
 	}
 
 	@Test
+	public void monitorWriteAccessNanosChecker() throws InterruptedException {
+		final String initialValue = "initial";
+		final String modifiedValue = "modified";
+		Monitor<String> monitor = new Monitor<String>(initialValue);
+
+		monitor.writeAccess(
+			new Accessor<String>() {
+				@Override
+				public String access(String value) {
+					return modifiedValue;
+				}
+			}, new Checker<String>() {
+				@Override
+				public boolean check(String value) {
+					return value == initialValue;
+				}
+			}, 1000);
+
+		monitor.readAccess(new Accessor<String>() {
+			@Override
+			public String access(String value) {
+				assertTrue(modifiedValue == value, "Test Monitor.writeAccess(Checker) without wait for Nanoseconds.");
+				return null;
+			}
+		});
+	}
+
+	@Test
+	public void monitorWriteAccessMillisChecker() throws InterruptedException {
+		final String initialValue = "initial";
+		final String modifiedValue = "modified";
+		Monitor<String> monitor = new Monitor<String>(initialValue);
+
+		monitor.writeAccess(
+			new Accessor<String>() {
+				@Override
+				public String access(String value) {
+					return modifiedValue;
+				}
+			}, new Checker<String>() {
+				@Override
+				public boolean check(String value) {
+					return value == initialValue;
+				}
+			}, 100, TimeUnit.MILLISECONDS);
+
+		monitor.readAccess(new Accessor<String>() {
+			@Override
+			public String access(String value) {
+				assertTrue(modifiedValue == value, "Test Monitor.writeAccess(Checker) without wait for Milliseconds.");
+				return null;
+			}
+		});
+	}
+
+	@Test
+	public void monitorWriteAccessDateChecker() throws InterruptedException {
+		final String initialValue = "initial";
+		final String modifiedValue = "modified";
+		Monitor<String> monitor = new Monitor<String>(initialValue);
+
+		monitor.writeAccess(
+			new Accessor<String>() {
+				@Override
+				public String access(String value) {
+					return modifiedValue;
+				}
+			}, new Checker<String>() {
+				@Override
+				public boolean check(String value) {
+					return value == initialValue;
+				}
+			}, new Date(Calendar.getInstance().getTimeInMillis() + 100));
+
+		monitor.readAccess(new Accessor<String>() {
+			@Override
+			public String access(String value) {
+				assertTrue(modifiedValue == value, "Test Monitor.writeAccess(Checker) without wait for Date.");
+				return null;
+			}
+		});
+	}
+
+	@Test
 	public void monitorNanosecondsReadTest() throws InterruptedException {
 		Monitor<String> monitor = new Monitor<String>(null);
 		long result = monitor.readAccess(
