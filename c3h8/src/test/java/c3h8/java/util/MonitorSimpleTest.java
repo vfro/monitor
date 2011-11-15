@@ -297,7 +297,7 @@ public class MonitorSimpleTest {
 				public boolean check(String value) {
 					return false;
 				}
-			}, 10, TimeUnit.MILLISECONDS);
+			}, 100, TimeUnit.MILLISECONDS);
 		assertFalse(result, "Test Monitor.readAccess interrupt wait for milliseconds.");
 	}
 
@@ -316,7 +316,45 @@ public class MonitorSimpleTest {
 				public boolean check(String value) {
 					return false;
 				}
-			}, 10, TimeUnit.MILLISECONDS);
+			}, 100, TimeUnit.MILLISECONDS);
 		assertFalse(result, "Test Monitor.writeAccess interrupt wait for milliseconds.");
+	}
+
+	@Test
+	public void monitorDateReadTest() throws InterruptedException {
+		Monitor<String> monitor = new Monitor<String>(null);
+		boolean result = monitor.readAccess(
+			new Accessor<String>() {
+				@Override
+				public String access(String value) {
+					fail("Never reach read access for false checer.");
+					return null;
+				}
+			}, new Checker<String>() {
+				@Override
+				public boolean check(String value) {
+					return false;
+				}
+			}, new Date(Calendar.getInstance().getTimeInMillis() + 100));
+		assertFalse(result, "Test Monitor.readAccess interrupt wait for Date.");
+	}
+
+	@Test
+	public void monitorDateWriteTest() throws InterruptedException {
+		Monitor<String> monitor = new Monitor<String>(null);
+		boolean result = monitor.writeAccess(
+			new Accessor<String>() {
+				@Override
+				public String access(String value) {
+					fail("Never reach write access for false checer.");
+					return null;
+				}
+			}, new Checker<String>() {
+				@Override
+				public boolean check(String value) {
+					return false;
+				}
+			}, new Date(Calendar.getInstance().getTimeInMillis() + 100));
+		assertFalse(result, "Test Monitor.writeAccess interrupt wait for Date.");
 	}
 }
