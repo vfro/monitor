@@ -14,7 +14,11 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  * some certain state (defined by a {@link Checker}).
  */
 public class Monitor<Value> {
-	protected Property<Value> rawValue;
+	/**
+	 * All descendants of {@code Monitor} class will have access to a property that stores
+	 * raw value with ability to access it without synchronization.
+	 */
+	final protected Property<Value> rawValue;
 
 	private Condition checkEvent = null;
 
@@ -28,19 +32,24 @@ public class Monitor<Value> {
 		}
 	};
 
+	protected Monitor(Property<Value> rawValue, Lock readLock, Lock writeLock) {
+		this.rawValue = rawValue;
+		this.rlock.set(readLock);
+		this.wlock.set(writeLock);
+	}
+
 	/**
 	 * Create new instance of a monitor initialized by specified value.
 	 * @param value initial value of a monitor.
 	 */
 	public Monitor(Value value) {
 		this.rawValue = new Property<Value>(value);
-
 		ReadWriteLock rwlock = new ReentrantReadWriteLock();
 		this.rlock.set(rwlock.readLock());
 		this.wlock.set(rwlock.writeLock());
 	}
 
-	public void readAccess(Accessor<Value> accessor) {
+	final public void readAccess(Accessor<Value> accessor) {
 		try {
 			this.rlock.get().lock();
 			accessor.access(this.rawValue.get());
@@ -50,7 +59,7 @@ public class Monitor<Value> {
 		}
 	}
 
-	public void readAccess(Accessor<Value> accessor, Checker<Value> checker)
+	final public void readAccess(Accessor<Value> accessor, Checker<Value> checker)
 		throws InterruptedException {
 		Lock lockedObject = null;
 		try {
@@ -71,12 +80,12 @@ public class Monitor<Value> {
 		}
 	}
 
-	public boolean readAccess(Accessor<Value> accessor, Checker<Value> checker, long time, TimeUnit unit)
+	final public boolean readAccess(Accessor<Value> accessor, Checker<Value> checker, long time, TimeUnit unit)
 		throws InterruptedException {
 		return this.readAccess(accessor, checker, unit.toNanos(time)) > 0;
 	}
 
-	public boolean readAccess(Accessor<Value> accessor, Checker<Value> checker, Date deadline)
+	final public boolean readAccess(Accessor<Value> accessor, Checker<Value> checker, Date deadline)
 		throws InterruptedException {
 		Calendar deadlineCalendar = Calendar.getInstance();
 		deadlineCalendar.setTime(deadline);
@@ -84,7 +93,7 @@ public class Monitor<Value> {
 		return readAccess(accessor, checker, deadlineCalendar.getTimeInMillis() - now.getTimeInMillis(), TimeUnit.MILLISECONDS);
 	}
 
-	public long readAccess(Accessor<Value> accessor, Checker<Value> checker, long nanosTimeout)
+	final public long readAccess(Accessor<Value> accessor, Checker<Value> checker, long nanosTimeout)
 		throws InterruptedException {
 		long origin = System.nanoTime();
 		long timeLeft = nanosTimeout;
@@ -118,7 +127,7 @@ public class Monitor<Value> {
 		return result;
 	}
 
-	public void writeAccess(Accessor<Value> accessor, Checker<Value> checker)
+	final public void writeAccess(Accessor<Value> accessor, Checker<Value> checker)
 		throws InterruptedException {
 		try {
 			this.wlock.get().lock();
@@ -133,12 +142,12 @@ public class Monitor<Value> {
 		}
 	}
 
-	public boolean writeAccess(Accessor<Value> accessor, Checker<Value> checker, long time, TimeUnit unit)
+	final public boolean writeAccess(Accessor<Value> accessor, Checker<Value> checker, long time, TimeUnit unit)
 		throws InterruptedException {
 		return this.writeAccess(accessor, checker, unit.toNanos(time)) > 0;
 	}
 
-	public boolean writeAccess(Accessor<Value> accessor, Checker<Value> checker, Date deadline)
+	final public boolean writeAccess(Accessor<Value> accessor, Checker<Value> checker, Date deadline)
 		throws InterruptedException {
 		Calendar deadlineCalendar = Calendar.getInstance();
 		deadlineCalendar.setTime(deadline);
@@ -146,7 +155,7 @@ public class Monitor<Value> {
 		return writeAccess(accessor, checker, deadlineCalendar.getTimeInMillis() - now.getTimeInMillis(), TimeUnit.MILLISECONDS);
 	}
 
-	public long writeAccess(Accessor<Value> accessor, Checker<Value> checker, long nanosTimeout)
+	final public long writeAccess(Accessor<Value> accessor, Checker<Value> checker, long nanosTimeout)
 		throws InterruptedException {
 		long origin = System.nanoTime();
 		long timeLeft = nanosTimeout;
@@ -180,7 +189,7 @@ public class Monitor<Value> {
 		return result;
 	}
 
-	public void writeAccess(Accessor<Value> accessor) {
+	final public void writeAccess(Accessor<Value> accessor) {
 		try {
 			this.wlock.get().lock();
 			this.rawValue.set(accessor.access(this.rawValue.get()));
@@ -191,7 +200,7 @@ public class Monitor<Value> {
 		}
 	}
 
-	public void set(Value value) {
+	final public void set(Value value) {
 		try {
 			this.wlock.get().lock();
 			this.rawValue.set(value);
