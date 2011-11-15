@@ -34,6 +34,7 @@ public class Monitor<Value> {
 		@Override
 		public void set(Lock lock) {
 			Monitor.this.rtouch = lock.newCondition();
+			super.set(lock);
 		}
 	};
 
@@ -41,6 +42,7 @@ public class Monitor<Value> {
 		@Override
 		public void set(Lock lock) {
 			Monitor.this.wtouch = lock.newCondition();
+			super.set(lock);
 		}
 	};
 
