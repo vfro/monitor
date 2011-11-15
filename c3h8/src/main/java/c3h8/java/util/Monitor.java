@@ -14,24 +14,35 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  */
 public class Monitor<Value> {
 	private Value value;
-	private ReadWriteLock rwlock = new ReentrantReadWriteLock();
-	private Lock rlock = rwlock.readLock();
-	private Lock wlock = rwlock.writeLock();
 
-	private Condition rtouch = rlock.newCondition();
-	private Condition wtouch = wlock.newCondition();
+	private Condition rtouch = null;
+	private Condition wtouch = null;
 
 	// must be called only inside write lock
 	private void touch() {
 		this.wtouch.signalAll();
 		try {
-			this.rlock.lock();
+			this.rlock.get().lock();
 			this.rtouch.signalAll();
 		}
 		finally {
-			this.rlock.unlock();
+			this.rlock.get().unlock();
 		}
 	}
+
+	public final Property<Lock> rlock = new Property<Lock>(null) {
+		@Override
+		public void set(Lock lock) {
+			Monitor.this.rtouch = lock.newCondition();
+		}
+	};
+
+	public final Property<Lock> wlock = new Property<Lock>(null) {
+		@Override
+		public void set(Lock lock) {
+			Monitor.this.wtouch = lock.newCondition();
+		}
+	};
 
 	/**
 	 * Create new instance of a monitor initialized by specified value.
@@ -39,36 +50,39 @@ public class Monitor<Value> {
 	 */
 	public Monitor(Value value) {
 		this.value = value;
+		ReadWriteLock rwlock = new ReentrantReadWriteLock();
+		rlock.set(rwlock.readLock());
+		wlock.set(rwlock.writeLock());
 	}
 
 	public void readAccess(Accessor<Value> accessor) {
 		try {
-			this.rlock.lock();
+			this.rlock.get().lock();
 			accessor.access(this.value);
 		}
 		finally {
-			this.rlock.unlock();
+			this.rlock.get().unlock();
 		}
 	}
 
 	public void readAccess(Accessor<Value> accessor, Checker<Value> checker)
 		throws InterruptedException {
 		try {
-			this.rlock.lock();
+			this.rlock.get().lock();
 			while (!checker.check(this.value)) {
 				rtouch.await();
 			}
 			accessor.access(this.value);
 		}
 		finally {
-			this.rlock.unlock();
+			this.rlock.get().unlock();
 		}
 	}
 
 	public boolean readAccess(Accessor<Value> accessor, Checker<Value> checker, long time, TimeUnit unit)
 		throws InterruptedException {
 		try {
-			this.rlock.lock();
+			this.rlock.get().lock();
 			while (!checker.check(this.value)) {
 				if (!rtouch.await(time, unit)) {
 					return false;
@@ -77,7 +91,7 @@ public class Monitor<Value> {
 			accessor.access(this.value);
 		}
 		finally {
-			this.rlock.unlock();
+			this.rlock.get().unlock();
 		}
 		return true;
 	}
@@ -86,7 +100,7 @@ public class Monitor<Value> {
 		throws InterruptedException {
 		long result = 0;
 		try {
-			this.rlock.lock();
+			this.rlock.get().lock();
 			while (!checker.check(this.value)) {
 				result = rtouch.awaitNanos(nanosTimeout);
 				if (result <= 0) {
@@ -96,7 +110,7 @@ public class Monitor<Value> {
 			accessor.access(this.value);
 		}
 		finally {
-			this.rlock.unlock();
+			this.rlock.get().unlock();
 		}
 		return result;
 	}
@@ -104,7 +118,7 @@ public class Monitor<Value> {
 	public boolean readAccess(Accessor<Value> accessor, Checker<Value> checker, Date deadline)
 		throws InterruptedException {
 		try {
-			this.rlock.lock();
+			this.rlock.get().lock();
 			while (!checker.check(this.value)) {
 				if (!rtouch.awaitUntil(deadline)) {
 					return false;
@@ -113,7 +127,7 @@ public class Monitor<Value> {
 			accessor.access(this.value);
 		}
 		finally {
-			this.rlock.unlock();
+			this.rlock.get().unlock();
 		}
 		return true;
 	}
@@ -121,7 +135,7 @@ public class Monitor<Value> {
 	public void writeAccess(Accessor<Value> accessor, Checker<Value> checker)
 		throws InterruptedException {
 		try {
-			this.wlock.lock();
+			this.wlock.get().lock();
 			while (!checker.check(this.value)) {
 				wtouch.await();
 			}
@@ -129,14 +143,14 @@ public class Monitor<Value> {
 			this.touch();
 		}
 		finally {
-			this.wlock.unlock();
+			this.wlock.get().unlock();
 		}
 	}
 
 	public boolean writeAccess(Accessor<Value> accessor, Checker<Value> checker, long time, TimeUnit unit)
 		throws InterruptedException {
 		try {
-			this.wlock.lock();
+			this.wlock.get().lock();
 			while (!checker.check(this.value)) {
 				if (!wtouch.await(time, unit)) {
 					return false;
@@ -146,7 +160,7 @@ public class Monitor<Value> {
 			this.touch();
 		}
 		finally {
-			this.wlock.unlock();
+			this.wlock.get().unlock();
 		}
 		return true;
 	}
@@ -155,7 +169,7 @@ public class Monitor<Value> {
 		throws InterruptedException {
 		long result = 0;
 		try {
-			this.wlock.lock();
+			this.wlock.get().lock();
 			while (!checker.check(this.value)) {
 				result = wtouch.awaitNanos(nanosTimeout);
 				if (result <= 0) {
@@ -166,7 +180,7 @@ public class Monitor<Value> {
 			this.touch();
 		}
 		finally {
-			this.wlock.unlock();
+			this.wlock.get().unlock();
 		}
 		return result;
 	}
@@ -174,7 +188,7 @@ public class Monitor<Value> {
 	public boolean writeAccess(Accessor<Value> accessor, Checker<Value> checker, Date deadline)
 		throws InterruptedException {
 		try {
-			this.wlock.lock();
+			this.wlock.get().lock();
 			while (!checker.check(this.value)) {
 				if (!wtouch.awaitUntil(deadline)) {
 					return false;
@@ -184,30 +198,30 @@ public class Monitor<Value> {
 			this.touch();
 		}
 		finally {
-			this.wlock.unlock();
+			this.wlock.get().unlock();
 		}
 		return true;
 	}
 
 	public void writeAccess(Accessor<Value> accessor) {
 		try {
-			this.wlock.lock();
+			this.wlock.get().lock();
 			this.value = accessor.access(this.value);
 			this.touch();
 		}
 		finally {
-			rlock.unlock();
+			rlock.get().unlock();
 		}
 	}
 
 	public void set(Value value) {
 		try {
-			this.wlock.lock();
+			this.wlock.get().lock();
 			this.value = value;
 			this.touch();
 		}
 		finally {
-			this.wlock.unlock();
+			this.wlock.get().unlock();
 		}
 	}
 }
