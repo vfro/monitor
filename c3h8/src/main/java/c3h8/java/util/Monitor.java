@@ -1,6 +1,7 @@
 package c3h8.java.util;
 
 import java.util.Date;
+import java.util.Calendar;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
@@ -72,77 +73,49 @@ public class Monitor<Value> {
 
 	public boolean readAccess(Accessor<Value> accessor, Checker<Value> checker, long time, TimeUnit unit)
 		throws InterruptedException {
-		Lock lockedObject = null;
-		try {
-			lockedObject = this.wlock.get();
-			lockedObject.lock();
-			while (!checker.check(this.value)) {
-				if (!this.checkEvent.await(time, unit)) {
-					return false;
-				}
-			}
+		return this.readAccess(accessor, checker, unit.toNanos(time)) > 0;
+	}
 
-			this.rlock.get().lock();
-			lockedObject.unlock();
-			lockedObject = this.rlock.get();
-
-			accessor.access(this.value);
-		}
-		finally {
-			lockedObject.unlock();
-		}
-		return true;
+	public boolean readAccess(Accessor<Value> accessor, Checker<Value> checker, Date deadline)
+		throws InterruptedException {
+		Calendar deadlineCalendar = Calendar.getInstance();
+		deadlineCalendar.setTime(deadline);
+		Calendar now = Calendar.getInstance();
+		return readAccess(accessor, checker, deadlineCalendar.getTimeInMillis() - now.getTimeInMillis(), TimeUnit.MILLISECONDS);
 	}
 
 	public long readAccess(Accessor<Value> accessor, Checker<Value> checker, long nanosTimeout)
 		throws InterruptedException {
-		Lock lockedObject = null;
+		long origin = System.nanoTime();
+		long timeLeft = nanosTimeout;
+		Lock aquiredLock = null;
+
 		long result = 0;
 		try {
-			lockedObject = this.wlock.get();
-			lockedObject.lock();
+			if (this.wlock.get().tryLock(timeLeft, TimeUnit.NANOSECONDS)) {
+				aquiredLock = this.wlock.get();
+			} else {
+				return origin + nanosTimeout - System.nanoTime();
+			}
+
 			while (!checker.check(this.value)) {
-				result = this.checkEvent.awaitNanos(nanosTimeout);
+				timeLeft = origin + nanosTimeout - System.nanoTime();
+				result = this.checkEvent.awaitNanos(timeLeft);
 				if (result <= 0) {
 					return result;
 				}
 			}
 
 			this.rlock.get().lock();
-			lockedObject.unlock();
-			lockedObject = this.rlock.get();
+			aquiredLock.unlock();
+			aquiredLock = this.rlock.get();
 
 			accessor.access(this.value);
 		}
 		finally {
-			lockedObject.unlock();
+			aquiredLock.unlock();
 		}
 		return result;
-	}
-
-	public boolean readAccess(Accessor<Value> accessor, Checker<Value> checker, Date deadline)
-		throws InterruptedException {
-		Lock lockedObject = null;
-		try {
-			lockedObject = this.wlock.get();
-			lockedObject.lock();
-
-			while (!checker.check(this.value)) {
-				if (!this.checkEvent.awaitUntil(deadline)) {
-					return false;
-				}
-			}
-
-			this.rlock.get().lock();
-			lockedObject.unlock();
-			lockedObject = this.rlock.get();
-
-			accessor.access(this.value);
-		}
-		finally {
-			lockedObject.unlock();
-		}
-		return true;
 	}
 
 	public void writeAccess(Accessor<Value> accessor, Checker<Value> checker)
@@ -162,58 +135,49 @@ public class Monitor<Value> {
 
 	public boolean writeAccess(Accessor<Value> accessor, Checker<Value> checker, long time, TimeUnit unit)
 		throws InterruptedException {
-		try {
-			this.wlock.get().lock();
-			while (!checker.check(this.value)) {
-				if (!this.checkEvent.await(time, unit)) {
-					return false;
-				}
-			}
-			this.value = accessor.access(this.value);
-			this.checkEvent.signalAll();
-		}
-		finally {
-			this.wlock.get().unlock();
-		}
-		return true;
-	}
-
-	public long writeAccess(Accessor<Value> accessor, Checker<Value> checker, long nanosTimeout)
-		throws InterruptedException {
-		long result = 0;
-		try {
-			this.wlock.get().lock();
-			while (!checker.check(this.value)) {
-				result = this.checkEvent.awaitNanos(nanosTimeout);
-				if (result <= 0) {
-					return result;
-				}
-			}
-			this.value = accessor.access(this.value);
-			this.checkEvent.signalAll();
-		}
-		finally {
-			this.wlock.get().unlock();
-		}
-		return result;
+		return this.writeAccess(accessor, checker, unit.toNanos(time)) > 0;
 	}
 
 	public boolean writeAccess(Accessor<Value> accessor, Checker<Value> checker, Date deadline)
 		throws InterruptedException {
+		Calendar deadlineCalendar = Calendar.getInstance();
+		deadlineCalendar.setTime(deadline);
+		Calendar now = Calendar.getInstance();
+		return writeAccess(accessor, checker, deadlineCalendar.getTimeInMillis() - now.getTimeInMillis(), TimeUnit.MILLISECONDS);
+	}
+
+	public long writeAccess(Accessor<Value> accessor, Checker<Value> checker, long nanosTimeout)
+		throws InterruptedException {
+		long origin = System.nanoTime();
+		long timeLeft = nanosTimeout;
+		Lock aquiredLock = null;
+
+		long result = 0;
+
 		try {
-			this.wlock.get().lock();
+			if (this.wlock.get().tryLock(timeLeft, TimeUnit.NANOSECONDS)) {
+				aquiredLock = this.wlock.get();
+			} else {
+				return origin + nanosTimeout - System.nanoTime();
+			}
+
 			while (!checker.check(this.value)) {
-				if (!this.checkEvent.awaitUntil(deadline)) {
-					return false;
+				timeLeft = origin + nanosTimeout - System.nanoTime();
+				result = this.checkEvent.awaitNanos(timeLeft);
+				if (result <= 0) {
+					return result;
 				}
 			}
+
 			this.value = accessor.access(this.value);
 			this.checkEvent.signalAll();
 		}
 		finally {
-			this.wlock.get().unlock();
+			if (aquiredLock != null) {
+				aquiredLock.unlock();
+			}
 		}
-		return true;
+		return result;
 	}
 
 	public void writeAccess(Accessor<Value> accessor) {
