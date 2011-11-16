@@ -1,4 +1,4 @@
-package c3h8.java.util;
+package c3h8.util;
 
 /**
  * A {@link Property} with support of fluent interface.<p>

@@ -1,4 +1,4 @@
-package c3h8.java.util;
+package c3h8.util;
 
 import java.util.Collections;
 import java.util.Set;

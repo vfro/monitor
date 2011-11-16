@@ -1,4 +1,4 @@
-package c3h8.java.util;
+package c3h8.util;
 
 /**
  * The aim of {@code IFluentProperty} interface is to unify {@link FluentProperty} and

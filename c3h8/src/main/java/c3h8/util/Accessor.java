@@ -1,4 +1,4 @@
-package c3h8.java.util;
+package c3h8.util;
 
 /**
  * Accessor is an interface which is used by {@link Monitor} to access

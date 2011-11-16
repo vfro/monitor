@@ -1,4 +1,4 @@
-package c3h8.java.util;
+package c3h8.util;
 
 /**
  * Checker to determinate if {@link Monitor} value becomed to appropriate state for access.
