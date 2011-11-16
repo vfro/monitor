@@ -1,8 +1,10 @@
 package c3h8.util;
 
 /**
- * Accessor is an interface which is used by {@link Monitor} to access
- * its value which cannot be directly returned from getter.
+ * Value of a {@link Monitor} property cannot be accessed directly from getter.
+ * {@code Accessor} interface is used to access the value insead. Value of the {@link Monitor}
+ * should be accessed only inside {@code Accessor.access} method and must not be
+ * used anywhere outside it.
  */
 public interface Accessor<Value> {
 	/**
