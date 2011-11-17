@@ -331,6 +331,7 @@ public class MonitorSimpleTest {
 	@Test
 	public void monitorNanosecondsReadTest() throws InterruptedException {
 		Monitor<String> monitor = new Monitor<String>(null);
+		long now = System.nanoTime();
 		long result = monitor.readAccess(
 			new Accessor<String>() {
 				@Override
@@ -345,11 +346,13 @@ public class MonitorSimpleTest {
 				}
 			}, 1000);
 		assertTrue(result <= 0, "Test Monitor.readAccess interrupt wait for nanoseconds.");
+		assertTrue(System.nanoTime() >= 1000 + now, "Test Monitor.readAccess wasn't interrupted earlier when wait for nanoseconds.");
 	}
 
 	@Test
 	public void monitorNanosecondsWriteTest() throws InterruptedException {
 		Monitor<String> monitor = new Monitor<String>(null);
+		long now = System.nanoTime();
 		long result = monitor.writeAccess(
 			new Accessor<String>() {
 				@Override
@@ -364,11 +367,13 @@ public class MonitorSimpleTest {
 				}
 			}, 1000);
 		assertTrue(result <= 0, "Test Monitor.writeAccess interrupt wait for nanoseconds.");
+		assertTrue(System.nanoTime() >= 1000 + now, "Test Monitor.writeAccess wasn't interrupted earlier when wait for nanoseconds.");
 	}
 
 	@Test
 	public void monitorTimeunitReadTest() throws InterruptedException {
 		Monitor<String> monitor = new Monitor<String>(null);
+		long now = System.currentTimeMillis();
 		boolean result = monitor.readAccess(
 			new Accessor<String>() {
 				@Override
@@ -383,11 +388,13 @@ public class MonitorSimpleTest {
 				}
 			}, 100, TimeUnit.MILLISECONDS);
 		assertFalse(result, "Test Monitor.readAccess interrupt wait for milliseconds.");
+		assertTrue(System.currentTimeMillis() >= 100 + now, "Test Monitor.readAccess wasn't interrupted earlier when wait for milliseconds.");
 	}
 
 	@Test
 	public void monitorTimeunitWriteTest() throws InterruptedException {
 		Monitor<String> monitor = new Monitor<String>(null);
+		long now = System.currentTimeMillis();
 		boolean result = monitor.writeAccess(
 			new Accessor<String>() {
 				@Override
@@ -402,11 +409,13 @@ public class MonitorSimpleTest {
 				}
 			}, 100, TimeUnit.MILLISECONDS);
 		assertFalse(result, "Test Monitor.writeAccess interrupt wait for milliseconds.");
+		assertTrue(System.currentTimeMillis() >= 100 + now, "Test Monitor.writeAccess wasn't interrupted earlier when wait for milliseconds.");
 	}
 
 	@Test
 	public void monitorDateReadTest() throws InterruptedException {
 		Monitor<String> monitor = new Monitor<String>(null);
+		long now = System.currentTimeMillis();
 		boolean result = monitor.readAccess(
 			new Accessor<String>() {
 				@Override
@@ -421,11 +430,13 @@ public class MonitorSimpleTest {
 				}
 			}, new Date(Calendar.getInstance().getTimeInMillis() + 100));
 		assertFalse(result, "Test Monitor.readAccess interrupt wait for Date.");
+		assertTrue(System.currentTimeMillis() >= 100 + now, "Test Monitor.readAccess wasn't interrupted earlier when wait for Date.");
 	}
 
 	@Test
 	public void monitorDateWriteTest() throws InterruptedException {
 		Monitor<String> monitor = new Monitor<String>(null);
+		long now = System.currentTimeMillis();
 		boolean result = monitor.writeAccess(
 			new Accessor<String>() {
 				@Override
@@ -440,5 +451,6 @@ public class MonitorSimpleTest {
 				}
 			}, new Date(Calendar.getInstance().getTimeInMillis() + 100));
 		assertFalse(result, "Test Monitor.writeAccess interrupt wait for Date.");
+		assertTrue(System.currentTimeMillis() >= 100 + now, "Test Monitor.writeAccess wasn't interrupted earlier when wait for Date.");
 	}
 }
