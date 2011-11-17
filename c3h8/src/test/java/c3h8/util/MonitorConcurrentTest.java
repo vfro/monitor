@@ -2,12 +2,14 @@ package c3h8.util;
 
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Stack;
 
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CyclicBarrier;
 
 import org.testng.annotations.Test;
 
+import static org.testng.Assert.fail;
 import static org.testng.Assert.assertEquals;
 
 public class MonitorConcurrentTest {
@@ -77,7 +79,6 @@ public class MonitorConcurrentTest {
 					);
 				} catch(InterruptedException e) {
 					errors.add(e);
-					return;
 				} catch(BrokenBarrierException e) {
 					errors.add(e);
 				}
@@ -103,4 +104,87 @@ public class MonitorConcurrentTest {
 		assertEquals(errors.size(), 0, "Test monitor has no errors during writeAccess/readAccess.");
 	}
 
+	@Test
+	public void calculateSum() throws InterruptedException, BrokenBarrierException {
+		final List<Object> errors = new LinkedList<Object>();
+
+		final Monitor<Stack<Integer>> sum = new Monitor<Stack<Integer>>(new Stack<Integer>());
+		int result = 0;
+		for (int i = 0; i < 1000; i++) {
+			result += i;
+			final int item = i;
+			sum.writeAccess(
+					new Accessor<Stack<Integer>>() {
+						@Override
+						public Stack<Integer> access(Stack<Integer> stackSum) {
+							stackSum.push(item);
+							return stackSum;
+						}
+				});
+		}
+		final int finalResult = result;
+
+		final CyclicBarrier barrier = new CyclicBarrier(11);
+		List<Thread> workers = new LinkedList<Thread>();
+		for (int i = 0; i < 10; i++) {
+			Thread worker = 
+				new Thread(
+					new Runnable() {
+						@Override
+						public void run() {
+							try {
+								barrier.await();
+								while(true) {
+									sum.writeAccess(
+											new Accessor<Stack<Integer>>() {
+												@Override
+												public Stack<Integer> access(Stack<Integer> stackSum) {
+													int value1 = stackSum.pop();
+													int value2 = stackSum.pop();
+													stackSum.push(value1 + value2);
+													return stackSum;
+												}
+											},
+											new Checker<Stack<Integer>>() {
+												@Override
+												public boolean check(Stack<Integer> stackSum) {
+													return stackSum.size() >= 2;
+												}
+											}
+										);
+								}
+							} catch(InterruptedException e) {
+								// It is okay. Worker is interrupted.
+							} catch(BrokenBarrierException e) {
+								errors.add(e);
+							}
+						}
+			});
+			worker.start();
+			workers.add(worker);
+		}
+
+		barrier.await();
+		sum.readAccess(
+				new Accessor<Stack<Integer>>() {
+					@Override
+					public Stack<Integer> access(Stack<Integer> stackSum) {
+						int result = stackSum.pop();
+						assertEquals(finalResult, result, "Workers have calculated resuld correctly.");
+						return stackSum;
+					}
+				},
+				new Checker<Stack<Integer>>() {
+					@Override
+					public boolean check(Stack<Integer> stackSum) {
+						return stackSum.size() == 1;
+					}
+				}
+			);
+
+		assertEquals(errors.size(), 0, "Test monitor has no errors during calculating sum.");
+		for(Thread worker : workers) {
+			worker.interrupt();
+		}
+	}
 }
