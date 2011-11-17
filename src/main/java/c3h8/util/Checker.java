@@ -13,7 +13,7 @@ public interface Checker<Value> {
 	 * Check if a value of a {@link Monitor} becomed to appropriate state for access.
 	 * It is legal to throw runtime exceptions from checker and the exception instance will
 	 * be thrown from access methods.
-         * @param value. Value of a {@link Monitor} to check. Checker must not change internal
+	 * @param value Value of a {@link Monitor} to check. Checker must not change internal
 	 * state of a {@code value} object. Otherwise all other accessors won't be able to track
 	 * changes and wake up.
 	 * @return {@code true} if {@link Monitor} becomed to appropriate state for access.

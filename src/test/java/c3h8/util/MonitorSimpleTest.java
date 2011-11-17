@@ -13,6 +13,7 @@ import static org.testng.Assert.fail;
 import static org.testng.Assert.assertTrue;
 import static org.testng.Assert.assertFalse;
 import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertNull;
 
 public class MonitorSimpleTest {
 	public MonitorSimpleTest() {
@@ -35,7 +36,7 @@ public class MonitorSimpleTest {
 	public void monitorSetterReadAccess() {
 		final String monitorValue = "Test";
 		Monitor<String> monitor = new Monitor<String>(null);
-		monitor.set(monitorValue);
+		assertNull(monitor.set(monitorValue), "Test Monitor.set method returns previous value.");
 		monitor.readAccess(new Accessor<String>() {
 			@Override
 			public String access(String value) {
