@@ -113,12 +113,13 @@ public class Monitor<Value> {
 	 * not change internal state of the value in {@code Accessor.access} method.
 	 */
 	final public void readAccess(Accessor<Value> accessor) {
+		Lock lockedObject = this.rlock.get();
 		try {
-			this.rlock.get().lock();
+			lockedObject.lock();
 			accessor.access(this.rawValue.get());
 		}
 		finally {
-			this.rlock.get().unlock();
+			lockedObject.unlock();
 		}
 	}
 
@@ -136,9 +137,8 @@ public class Monitor<Value> {
 	 */
 	final public void readAccess(Accessor<Value> accessor, Checker<Value> checker)
 		throws InterruptedException {
-		Lock lockedObject = null;
+		Lock lockedObject = this.wlock.get();
 		try {
-			lockedObject = this.wlock.get();
 			lockedObject.lock();
 			while (!checker.check(this.rawValue.get())) {
 				this.checkEvent.await();
@@ -243,7 +243,9 @@ public class Monitor<Value> {
 			accessor.access(this.rawValue.get());
 		}
 		finally {
-			aquiredLock.unlock();
+			if (aquiredLock != null) {
+				aquiredLock.unlock();
+			}
 		}
 		return result;
 	}
@@ -256,13 +258,14 @@ public class Monitor<Value> {
 	 * change internal state of the value in {@code Accessor.access} method.
 	 */
 	final public void writeAccess(Accessor<Value> accessor) {
+		Lock lockedObject = this.wlock.get();
 		try {
-			this.wlock.get().lock();
+			lockedObject.lock();
 			this.rawValue.set(accessor.access(this.rawValue.get()));
 			this.checkEvent.signalAll();
 		}
 		finally {
-			this.wlock.get().unlock();
+			lockedObject.unlock();
 		}
 	}
 
@@ -280,8 +283,9 @@ public class Monitor<Value> {
 	 */
 	final public void writeAccess(Accessor<Value> accessor, Checker<Value> checker)
 		throws InterruptedException {
+		Lock lockedObject = this.wlock.get();
 		try {
-			this.wlock.get().lock();
+			lockedObject.lock();
 			while (!checker.check(this.rawValue.get())) {
 				this.checkEvent.await();
 			}
@@ -289,7 +293,7 @@ public class Monitor<Value> {
 			this.checkEvent.signalAll();
 		}
 		finally {
-			this.wlock.get().unlock();
+			lockedObject.unlock();
 		}
 	}
 
@@ -394,14 +398,15 @@ public class Monitor<Value> {
 	 */
 	final public Value set(Value value) {
 		Value previousValue;
+		Lock lockedObject = this.wlock.get();
 		try {
-			this.wlock.get().lock();
+			lockedObject.lock();
 			previousValue = this.rawValue.get();
 			this.rawValue.set(value);
 			this.checkEvent.signalAll();
 		}
 		finally {
-			this.wlock.get().unlock();
+			lockedObject.unlock();
 		}
 		return previousValue;
 	}
