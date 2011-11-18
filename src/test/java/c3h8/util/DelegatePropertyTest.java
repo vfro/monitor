@@ -35,6 +35,21 @@ public class DelegatePropertyTest {
 	}
 
 	@Test
+	public void propertyUnsubscribe() {
+		String stringValue = "Value";
+		String changedValue = "Changed value";
+
+		Property<String> subscriber = new Property<String>(null);
+		DelegateProperty<String> property = new DelegateProperty<String>(stringValue);
+		DelegateProperty<String> otherDelegateProperty = new DelegateProperty<String>(stringValue);
+		property.subscribe(subscriber);
+		assertFalse(otherDelegateProperty.unsubscribe(subscriber), "Test Property.unsubscribe() with not subscribed property.");
+		assertTrue(property.unsubscribe(subscriber), "Test Property.unsubscribe() with subscribed property.");
+		property.set(changedValue);
+		assertTrue(subscriber.get() == stringValue, "Test Property.get() after DelegateProperty.unsubscribe().");
+	}
+
+	@Test
 	public void propertyMultipleSubscribes() {
 		String stringValue = "Value";
 

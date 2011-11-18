@@ -36,6 +36,13 @@ public class PropertyTest {
 	}
 
 	@Test
+	public void propertyEqualsToItself() {
+		Property<String> stringProperty = new Property<String>("Property");
+
+		assertTrue(stringProperty.equals(stringProperty), "Test Property.equals() method with itself value.");
+	}
+
+	@Test
 	public void propertyDifferentValuesEquals() {
 		Property<String> stringProperty1 = new Property<String>("Property 1");
 		Property<String> stringProperty2 = new Property<String>("Property 2");

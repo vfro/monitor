@@ -98,9 +98,9 @@ public class DelegateProperty<Value> extends Property<Value> {
 	public boolean subscribe(Property<Value> property) {
 		boolean result;
 		try {
+			property.set(this.get());
 			subscribersGuard.lock();
 			result = this.subscribers.add(property);
-			property.set(this.get());
 		}
 		finally {
 			subscribersGuard.unlock();
