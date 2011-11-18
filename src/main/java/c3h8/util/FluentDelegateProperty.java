@@ -1,9 +1,5 @@
 package c3h8.util;
 
-import java.util.Collections;
-import java.util.Set;
-import java.util.WeakHashMap;
-
 /**
  * A property with support of both fluent interface and ability to delegate
  * a value.

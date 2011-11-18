@@ -10,8 +10,6 @@ public class FluentCollectionProperty<Owner, Value, Container extends Collection
 	extends FluentProperty<Owner, Container>
 	implements IFluentCollectionProperty<Owner, Value, Container> {
 
-	private Owner owner;
-
 	/**
 	 * Create new instance of fluent collection property.
 	 * @param owner owner object of a fluent property.
