@@ -22,6 +22,5 @@
 
 Propane Project
 
-  The aim of Propane Project is to provide useful facilities for defining properties
-  in Java language. All facilities are declared in c3h8.util package (c3h8 is a chemical
-  formula of propane).
+  Propane (c3h8) Project provides useful facilities for defining properties
+  in Java classes. All kinds of facilities are declared in c3h8.util package.
