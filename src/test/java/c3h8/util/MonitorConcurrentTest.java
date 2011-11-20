@@ -19,7 +19,6 @@ public class MonitorConcurrentTest {
     @Test
     public void monitorConcurentReadWriteAccess()
         throws InterruptedException, BrokenBarrierException {
-
         final List<Object> errors = new LinkedList<Object>();
         final Monitor<String> monitor = new Monitor<String>("");
         final CyclicBarrier barrier = new CyclicBarrier(3);
@@ -53,7 +52,7 @@ public class MonitorConcurrentTest {
                     errors.add(e);
                 }
             }
-        });
+        }, "monitorConcurentReadWriteAccess.reader");
 
         Thread writer = new Thread(new Runnable() {
             @Override
@@ -83,7 +82,7 @@ public class MonitorConcurrentTest {
                     errors.add(e);
                 }
             }
-        });
+        }, "monitorConcurentReadWriteAccess.writer");
 
         reader.start();
         writer.start();
@@ -159,7 +158,7 @@ public class MonitorConcurrentTest {
                                 errors.add(e);
                             }
                         }
-            });
+            }, "calculateSum.worker " + Integer.valueOf(i).toString());
             worker.start();
             workers.add(worker);
         }
