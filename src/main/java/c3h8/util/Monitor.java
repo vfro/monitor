@@ -104,8 +104,6 @@ public class Monitor<Value> {
         TimeTracker timeTracker = new TimeTracker(time, unit);
         Lock aquiredLock = null;
 
-        long result = 0;
-
         try {
             Lock tryLock = this.wlock.get();
             if (tryLock.tryLock(time, TimeTracker.systemUnit(unit))) {
@@ -162,6 +160,7 @@ public class Monitor<Value> {
             }
         }
         finally {
+            // TODO : java.lang.IllegalMonitorStateException
             lockedObject.unlock();
         }
     }

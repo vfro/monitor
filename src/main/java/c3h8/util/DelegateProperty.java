@@ -38,6 +38,14 @@ public class DelegateProperty<Value> extends Property<Value> {
     private Lock subscribersGuard = new ReentrantLock();
     private Set<Property<Value>> subscribers = Collections.newSetFromMap(new WeakHashMap<Property<Value>, Boolean>());
 
+    /**
+     * Get set of subscribers.
+     * @return Set of all subscribed properties.
+     */
+    protected Set<Property<Value>> getSubscribers() {
+        return subscribers;
+    }
+
     private ThreadLocal<Boolean> isLoop = new ThreadLocal<Boolean>() {
         @Override
         protected Boolean initialValue() {
@@ -126,5 +134,32 @@ public class DelegateProperty<Value> extends Property<Value> {
             subscribersGuard.unlock();
         }
         return result;
+    }
+
+    /**
+     * Compare that instances of {@code DelegateProperty} belongs to the same property class
+     * and have the same value and subscribers.
+     * @param object Any other {@code object} to compare this property with.
+     * @return {@code true} if {@code object} represents property of the same type with
+     * the same value. Otherwise {@code false}.
+     */
+    @Override
+    public boolean equals(Object object) {
+        if (!super.equals(object)) {
+            return false;
+        }
+
+        DelegateProperty property = (DelegateProperty)object;
+        return this.subscribers.equals(property.getSubscribers());
+    }
+
+    /**
+     * Hash code of a delegate property.
+     * @return Hash code of a property.
+     */
+    @Override
+    public int hashCode() {
+        // only value affects has code of a property
+        return super.hashCode();
     }
 }

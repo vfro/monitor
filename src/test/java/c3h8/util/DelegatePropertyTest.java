@@ -2,6 +2,8 @@ package c3h8.util;
 
 import org.testng.annotations.Test;
 
+import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertNotEquals;
 import static org.testng.Assert.assertFalse;
 import static org.testng.Assert.assertTrue;
 
@@ -80,5 +82,52 @@ public class DelegatePropertyTest {
 
         property2.set(stringValue2);
         assertTrue(property1.get() == stringValue2, "Test subscribe loop on a second property.");
+    }
+
+    @Test
+    public void delegatePropertyEqualsTheSame() {
+        String stringValue = "DelegateProperty";
+        Property<String> subscriber = new Property<String>("subscriber");
+        DelegateProperty<String> property1 = new DelegateProperty<String>(stringValue);
+        property1.subscribe(subscriber);
+        DelegateProperty<String> property2 = new DelegateProperty<String>(stringValue);
+        property2.subscribe(subscriber);
+        assertEquals(property1, property2, "Delegate properties are equals if they have the same value and subscribers.");
+    }
+
+    @Test
+    public void delegatePropertyNotEqualsDifferentValue() {
+        String stringValue1 = "DelegateProperty value1";
+        String stringValue2 = "DelegateProperty value2";
+        Property<String> subscriber = new Property<String>("subscriber");
+        DelegateProperty<String> property1 = new DelegateProperty<String>(stringValue1);
+        property1.subscribe(subscriber);
+        DelegateProperty<String> property2 = new DelegateProperty<String>(stringValue2);
+        property2.subscribe(subscriber);
+        assertNotEquals(property1, property2, "Delegate properties are not equals if they have different values.");
+    }
+
+    @Test
+    public void fluentPropertyNotEqualsDifferentSubscribers() {
+        String stringValue = "DelegateProperty";
+        Property<String> subscriber1 = new Property<String>("subscriber");
+        DelegateProperty<String> subscriber2 = new DelegateProperty<String>("subscriber");
+        DelegateProperty<String> property1 = new DelegateProperty<String>(stringValue);
+        property1.subscribe(subscriber1);
+        DelegateProperty<String> property2 = new DelegateProperty<String>(stringValue);
+        property2.subscribe(subscriber2);
+        assertNotEquals(property1, property2, "Delegate properties are not equals if they have different subscribers.");
+    }
+
+    @Test
+    public void delegatePropertyHashCode() {
+        String value = new String("Property");
+        Property<String> property = new Property<String>(value);
+
+        Property<String> subscriber = new Property<String>(value);
+        DelegateProperty<String> delegateProperty = new DelegateProperty<String>(value);
+        delegateProperty.subscribe(subscriber);
+
+        assertEquals(delegateProperty.hashCode(), property.hashCode(), "Test DelegateProperty.hashCode() equals to Property.hashCode() has code.");
     }
 }
