@@ -141,9 +141,10 @@ public class Monitor<Value> {
     private void accessByChecker(
             Accessor<Value> accessor, Checker<Value> checker, boolean isWrite
         ) throws InterruptedException {
-        Lock lockedObject = this.wlock.get();
+        Lock lockedObject = null;
         try {
-            lockedObject.lockInterruptibly();
+            this.wlock.get().lockInterruptibly();
+            lockedObject = this.wlock.get();
             while (!checker.check(this.rawValue.get())) {
                 this.checkEvent.await();
             }
@@ -160,8 +161,9 @@ public class Monitor<Value> {
             }
         }
         finally {
-            // TODO : java.lang.IllegalMonitorStateException
-            lockedObject.unlock();
+            if (lockedObject != null) {
+                lockedObject.unlock();
+            }
         }
     }
 
