@@ -32,7 +32,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  *       new Checker&lt;&lt;Queue&lt;String&gt;&gt;&gt;() {
  *          &#064;Override
  *          public boolean check(Queue&lt;String&gt; queue) {
- *             return !queue.empty();
+ *             return !queue.isEmpty();
  *          }
  *       }
  *    );
