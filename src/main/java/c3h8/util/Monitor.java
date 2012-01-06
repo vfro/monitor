@@ -143,8 +143,9 @@ public class Monitor<Value> {
         ) throws InterruptedException {
         Lock lockedObject = null;
         try {
-            this.wlock.get().lockInterruptibly();
-            lockedObject = this.wlock.get();
+            Lock tryLock = this.wlock.get();
+            tryLock.lockInterruptibly();
+            lockedObject = tryLock;
             while (!checker.check(this.rawValue.get())) {
                 this.checkEvent.await();
             }
