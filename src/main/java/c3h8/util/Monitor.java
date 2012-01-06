@@ -1,7 +1,5 @@
 package c3h8.util;
 
-import java.util.Date;
-import java.util.Calendar;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
@@ -24,8 +22,8 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  *          public Queue&lt;String&gt; access(Queue&lt;String&gt; queue) {
  *             System.out.println(queue.pull());
  *
- *             // Write access method must return its parameter to preserve link
- *             // to a queue
+ *             // Write access method must return its parameter to preserve
+ *             // link to a queue
  *             return queue;
  *          }
  *       },
@@ -53,12 +51,119 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  */
 public class Monitor<Value> {
     /**
-     * All descendants of {@code Monitor} class will have access to a property that stores
-     * {@code Monitor} value with without synchronization.
+     * All descendants of {@code Monitor} class will have access to a property
+     * that stores {@code Monitor} value with without synchronization.
      */
     final protected Property<Value> rawValue;
 
     private Condition checkEvent = null;
+
+    private static class TimeTracker {
+        private long origin;
+
+        private long time;
+        private TimeUnit unit;
+
+        TimeTracker(long time, TimeUnit unit) {
+            this.time = time;
+            this.unit = unit;
+            this.origin = systemTimer(unit);
+        }
+
+        boolean hasMoreTime() {
+            return this.timeLeft() > 0;
+        }
+
+        long timeLeft() {
+            long timer = systemTimer(this.unit);
+            return this.origin - timer + toSystemTimerUnits(this.time, this.unit);
+        }
+
+        static TimeUnit systemUnit(TimeUnit unit) {
+            if (unit == TimeUnit.NANOSECONDS || unit == TimeUnit.MICROSECONDS) {
+                return TimeUnit.NANOSECONDS;
+            }
+            return TimeUnit.MILLISECONDS;
+        }
+
+        private static long systemTimer(TimeUnit unit) {
+            if (unit == TimeUnit.NANOSECONDS || unit == TimeUnit.MICROSECONDS) {
+                return System.nanoTime();
+            }
+            return System.currentTimeMillis();
+        }
+
+        private static long toSystemTimerUnits(long time, TimeUnit unit) {
+            return systemUnit(unit).convert(time, unit);
+        }
+    };
+
+    private boolean accessByTime(
+            Accessor<Value> accessor, Checker<Value> checker, long time, TimeUnit unit, boolean isWrite
+        ) throws InterruptedException {
+        TimeTracker timeTracker = new TimeTracker(time, unit);
+        Lock aquiredLock = null;
+
+        try {
+            Lock tryLock = this.wlock.get();
+            if (tryLock.tryLock(time, TimeTracker.systemUnit(unit))) {
+                aquiredLock = tryLock;
+            } else {
+                return false;
+            }
+
+            while (!checker.check(this.rawValue.get())) {
+                while (!this.checkEvent.await(timeTracker.timeLeft(), TimeTracker.systemUnit(unit))) {
+                    if (!timeTracker.hasMoreTime()) {
+                        return false;
+                    }
+                }
+            }
+
+            if (isWrite) {
+                this.rawValue.set(accessor.access(this.rawValue.get()));
+                this.checkEvent.signalAll();
+            } else {
+                this.rlock.get().lock();
+                aquiredLock.unlock();
+                aquiredLock = this.rlock.get();
+                accessor.access(this.rawValue.get());
+            }
+        }
+        finally {
+            if (aquiredLock != null) {
+                aquiredLock.unlock();
+            }
+        }
+        return true;
+    }
+
+    private void accessByChecker(
+            Accessor<Value> accessor, Checker<Value> checker, boolean isWrite
+        ) throws InterruptedException {
+        Lock lockedObject = this.wlock.get();
+        try {
+            lockedObject.lockInterruptibly();
+            while (!checker.check(this.rawValue.get())) {
+                this.checkEvent.await();
+            }
+
+            if (isWrite) {
+                this.rawValue.set(accessor.access(this.rawValue.get()));
+                this.checkEvent.signalAll();
+            } else {
+                Lock downgradeLock = this.rlock.get();
+                downgradeLock.lockInterruptibly();
+                lockedObject.unlock();
+                lockedObject = downgradeLock;
+                accessor.access(this.rawValue.get());
+            }
+        }
+        finally {
+            // TODO : java.lang.IllegalMonitorStateException
+            lockedObject.unlock();
+        }
+    }
 
     /**
      * A lock which is used for read access synchronization. Read/Write lock
@@ -139,22 +244,7 @@ public class Monitor<Value> {
      */
     final public void readAccess(Accessor<Value> accessor, Checker<Value> checker)
         throws InterruptedException {
-        Lock lockedObject = this.wlock.get();
-        try {
-            lockedObject.lock();
-            while (!checker.check(this.rawValue.get())) {
-                this.checkEvent.await();
-            }
-
-            this.rlock.get().lock();
-            lockedObject.unlock();
-            lockedObject = this.rlock.get();
-
-            accessor.access(this.rawValue.get());
-        }
-        finally {
-            lockedObject.unlock();
-        }
+        accessByChecker(accessor, checker, false);
     }
 
     /**
@@ -175,81 +265,7 @@ public class Monitor<Value> {
      */
     final public boolean readAccess(Accessor<Value> accessor, Checker<Value> checker, long time, TimeUnit unit)
         throws InterruptedException {
-        return this.readAccess(accessor, checker, unit.toNanos(time)) > 0;
-    }
-
-    /**
-     * Causes the current thread to wait until monitor becomes to a certain state defined by
-     * {@link Checker} instance and access monitor value for read.
-     *
-     * Return value of a {@code Accessor.access} is ignored.
-     * Checker instance must not change a state of the monitor value.
-     * @param accessor {@code Accessor} instance to obtain read access. The instance must
-     * not change internal state of the value in {@code Accessor.access} method.
-     * @param checker {@code Checker} instance to define a state of the monitor value
-     * when it should be accessed by Accessor.
-     * @param deadline the absolute time to wait until.
-     * @return {@code true} if the monitor value has been accessed or {@code false} if the deadline
-     * has elapsed upon return.
-     * @throws InterruptedException if the current thread is interrupted.
-     */
-    final public boolean readAccess(Accessor<Value> accessor, Checker<Value> checker, Date deadline)
-        throws InterruptedException {
-        Calendar deadlineCalendar = Calendar.getInstance();
-        deadlineCalendar.setTime(deadline);
-        Calendar now = Calendar.getInstance();
-        return readAccess(accessor, checker, deadlineCalendar.getTimeInMillis() - now.getTimeInMillis(), TimeUnit.MILLISECONDS);
-    }
-
-    /**
-     * Causes the current thread to wait until monitor becomes to a certain state defined by
-     * {@link Checker} instance and access monitor value for read.
-     *
-     * Return value of a {@code Accessor.access} is ignored.
-     * Checker instance must not change a state of the monitor value.
-     * @param accessor {@code Accessor} instance to obtain read access. The instance must
-     * not change internal state of the value in {@code Accessor.access} method.
-     * @param checker {@code Checker} instance to define a state of the monitor value
-     * when it should be accessed by Accessor.
-     * @param nanosTimeout the maximum time to wait in nanoseconds.
-     * @return an estimate of the nanosTimeout value minus the time spent waiting upon return
-     * from this method. A value less than or equal to zero indicates that no time remains.
-     * @throws InterruptedException if the current thread is interrupted.
-     */
-    final public long readAccess(Accessor<Value> accessor, Checker<Value> checker, long nanosTimeout)
-        throws InterruptedException {
-        long origin = System.nanoTime();
-        long timeLeft = nanosTimeout;
-        Lock aquiredLock = null;
-
-        long result = 0;
-        try {
-            if (this.wlock.get().tryLock(timeLeft, TimeUnit.NANOSECONDS)) {
-                aquiredLock = this.wlock.get();
-            } else {
-                return origin + nanosTimeout - System.nanoTime();
-            }
-
-            while (!checker.check(this.rawValue.get())) {
-                timeLeft = origin + nanosTimeout - System.nanoTime();
-                result = this.checkEvent.awaitNanos(timeLeft);
-                if (result <= 0) {
-                    return result;
-                }
-            }
-
-            this.rlock.get().lock();
-            aquiredLock.unlock();
-            aquiredLock = this.rlock.get();
-
-            accessor.access(this.rawValue.get());
-        }
-        finally {
-            if (aquiredLock != null) {
-                aquiredLock.unlock();
-            }
-        }
-        return result;
+        return this.accessByTime(accessor, checker, time, unit, false);
     }
 
     /**
@@ -285,18 +301,7 @@ public class Monitor<Value> {
      */
     final public void writeAccess(Accessor<Value> accessor, Checker<Value> checker)
         throws InterruptedException {
-        Lock lockedObject = this.wlock.get();
-        try {
-            lockedObject.lock();
-            while (!checker.check(this.rawValue.get())) {
-                this.checkEvent.await();
-            }
-            this.rawValue.set(accessor.access(this.rawValue.get()));
-            this.checkEvent.signalAll();
-        }
-        finally {
-            lockedObject.unlock();
-        }
+        accessByChecker(accessor, checker, true);
     }
 
     /**
@@ -317,79 +322,7 @@ public class Monitor<Value> {
      */
     final public boolean writeAccess(Accessor<Value> accessor, Checker<Value> checker, long time, TimeUnit unit)
         throws InterruptedException {
-        return this.writeAccess(accessor, checker, unit.toNanos(time)) > 0;
-    }
-
-    /**
-     * Causes the current thread to wait until monitor becomes to a certain state defined by
-     * {@link Checker} instance and access monitor value for write.
-     *
-     * Return value of a {@code Accessor.access} becomes new value of a monitor property.
-     * Checker instance must not change a state of the monitor value.
-     * @param accessor {@code Accessor} instance to obtain write access. The instance may
-     * change internal state of the value in {@code Accessor.access} method.
-     * @param checker {@code Checker} instance to define a state of the monitor value
-     * when it should be accessed by Accessor.
-     * @param deadline the absolute time to wait until.
-     * @return {@code true} if the monitor value has been accessed or {@code false} if the deadline
-     * has elapsed upon return.
-     * @throws InterruptedException if the current thread is interrupted.
-     */
-    final public boolean writeAccess(Accessor<Value> accessor, Checker<Value> checker, Date deadline)
-        throws InterruptedException {
-        Calendar deadlineCalendar = Calendar.getInstance();
-        deadlineCalendar.setTime(deadline);
-        Calendar now = Calendar.getInstance();
-        return writeAccess(accessor, checker, deadlineCalendar.getTimeInMillis() - now.getTimeInMillis(), TimeUnit.MILLISECONDS);
-    }
-
-    /**
-     * Causes the current thread to wait until monitor becomes to a certain state defined by
-     * {@link Checker} instance and access monitor value for write.
-     *
-     * Return value of a {@code Accessor.access} becomes new value of a monitor property.
-     * Checker instance must not change a state of the monitor value.
-     * @param accessor {@code Accessor} instance to obtain write access. The instance may
-     * change internal state of the value in {@code Accessor.access} method.
-     * @param checker {@code Checker} instance to define a state of the monitor value
-     * when it should be accessed by Accessor.
-     * @param nanosTimeout the maximum time to wait in nanoseconds.
-     * @return an estimate of the nanosTimeout value minus the time spent waiting upon return
-     * from this method. A value less than or equal to zero indicates that no time remains.
-     * @throws InterruptedException if the current thread is interrupted.
-     */
-    final public long writeAccess(Accessor<Value> accessor, Checker<Value> checker, long nanosTimeout)
-        throws InterruptedException {
-        long origin = System.nanoTime();
-        long timeLeft = nanosTimeout;
-        Lock aquiredLock = null;
-
-        long result = 0;
-
-        try {
-            if (this.wlock.get().tryLock(timeLeft, TimeUnit.NANOSECONDS)) {
-                aquiredLock = this.wlock.get();
-            } else {
-                return origin + nanosTimeout - System.nanoTime();
-            }
-
-            while (!checker.check(this.rawValue.get())) {
-                timeLeft = origin + nanosTimeout - System.nanoTime();
-                result = this.checkEvent.awaitNanos(timeLeft);
-                if (result <= 0) {
-                    return result;
-                }
-            }
-
-            this.rawValue.set(accessor.access(this.rawValue.get()));
-            this.checkEvent.signalAll();
-        }
-        finally {
-            if (aquiredLock != null) {
-                aquiredLock.unlock();
-            }
-        }
-        return result;
+        return this.accessByTime(accessor, checker, time, unit, true);
     }
 
     /**

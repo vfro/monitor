@@ -42,4 +42,32 @@ public class FluentDelegateProperty<Owner, Value>
     protected Owner with() {
         return this.owner;
     }
+
+    /**
+    /**
+     * Compare that instances of {@code FluentDelegateProperty} belongs to the same
+     * property class and have the same value, owner and subscribers.
+     * @param object Any other {@code object} to compare this property with.
+     * @return {@code true} if {@code object} represents property of the same type with
+     * the same value. Otherwise {@code false}.
+     */
+    @Override
+    public boolean equals(Object object) {
+        if (!super.equals(object)) {
+            return false;
+        }
+
+        FluentDelegateProperty property = (FluentDelegateProperty)object;
+        return this.owner == property.with();
+    }
+
+    /**
+     * Hash code of a fluent delegate property.
+     * @return Hash code of a property.
+     */
+    @Override
+    public int hashCode() {
+        // only value affects has code of a property
+        return super.hashCode();
+    }
 }

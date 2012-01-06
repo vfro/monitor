@@ -72,9 +72,8 @@ public class Property<Value> {
     }
 
     /**
-     * Compare that properties are contained in the same property container class and have
-     * the same value.
-     * Any kind of {@code Property} childs should override this method.
+     * Compare that instances of {@code Property} belongs to the same property class
+     * and have the same value.
      * @param object Any other {@code object} to compare this property with.
      * @return {@code true} if {@code object} represents property of the same type with
      * the same value. Otherwise {@code false}.
@@ -99,6 +98,7 @@ public class Property<Value> {
      * Hash code of a property.
      * If {@code Property} has a not null value the hash code will be equals with hash code of
      * the property value. Otherwise it will be {@code 0}.
+     * @return Hash code of a property.
      */
     @Override
     public int hashCode() {

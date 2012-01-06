@@ -51,4 +51,32 @@ public class FluentProperty<Owner, Value>
     protected Owner with() {
         return this.owner;
     }
+
+    /**
+     * Compare that properties are contained in the same property container class have
+     * the same value and owner.
+     * Any kind of {@code Property} childs should override this method.
+     * @param object Any other {@code object} to compare this fluent property with.
+     * @return {@code true} if {@code object} represents fluent property of the same
+     * type with the same value. Otherwise {@code false}.
+     */
+    @Override
+    public boolean equals(Object object) {
+        if (!super.equals(object)) {
+            return false;
+        }
+
+        FluentProperty property = (FluentProperty)object;
+        return this.owner == property.with();
+    }
+
+    /**
+     * Hash code of a fluent property.
+     * @return Hash code of a property.
+     */
+    @Override
+    public int hashCode() {
+        // only value affects has code of a property
+        return super.hashCode();
+    }
 }
