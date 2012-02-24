@@ -47,6 +47,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  *          queue.add("Hello Monitor!");
  *          return queue;
  *       }
+ *    }
  * );
  * </pre>
  * @param <Value> value of the monitor.
