@@ -5,7 +5,7 @@
     <groupId>c3h8.util</groupId>
     <artifactId>propane</artifactId>
     <packaging>jar</packaging>
-    <version>0.4-SNAPSHOT</version>
+    <version>0.5-SNAPSHOT</version>
     <name>Propane Project</name>
     <description>Propane project provides implementation of a Monitor Concurrency pattern.</description>
     <url>http://vfro.bitbucket.org/c3h8/index.html</url>
