@@ -4,6 +4,10 @@ import java.util.LinkedList;
 import java.util.List;
 
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.testng.annotations.Test;
 
@@ -209,5 +213,16 @@ public class MonitorTest {
                 return null;
             }
         });
+    }
+
+    @Test
+    public void constructorWithLocks() {
+        ReadWriteLock readWriteLock = new ReentrantReadWriteLock();
+        Lock readLock = readWriteLock.readLock();
+        Lock writeLock = readWriteLock.writeLock();
+        
+        Monitor<String> monitor = new Monitor<String>("", readLock, writeLock);
+        assertEquals(monitor.getReadLock(), readLock, "Read lock is the same as passed to monitor constructor.");
+        assertEquals(monitor.getWriteLock(), writeLock, "Write lock is the same as passed to monitor constructor.");
     }
 }
