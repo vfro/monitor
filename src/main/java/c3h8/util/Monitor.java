@@ -7,27 +7,27 @@ import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
- * Monitor is a special kind of property which can be used for concurent
- * access a value and ability to wait until the value becomes into
- * some certain state (defined by a {@link Checker}).<p>
+ * Monitor can be used for concurent access a value and ability to
+ * wait until the value becomes into some certain state (defined by a {@link Checker}).<p>
  * <pre>
  * Monitor&lt;Queue&lt;String&gt;&gt; outputQueue = new Monitor&lt;Queue&lt;String&gt;&gt;(new LinkedList&lt;String&gt;());
  *
  * // ...
  * while(true) {
- *    // Wait until some string will be added to a queue and print this into System.out
+ *    // Wait until some string is added to a queue and print it into System.out
  *    outputQueue.writeAccess(
- *       new Accessor&lt;&lt;Queue&lt;String&gt;&gt;&gt;() {
+ *       new Accessor&lt;Queue&lt;String&gt;&gt;() {
  *          &#064;Override
  *          public Queue&lt;String&gt; access(Queue&lt;String&gt; queue) {
  *             System.out.println(queue.pull());
  *
- *             // Write access method must return its parameter to preserve
- *             // link to a queue
+ *             // Write access method must return the parameter object to preserve
+ *             // reference to the queue
  *             return queue;
  *          }
  *       },
- *       new Checker&lt;&lt;Queue&lt;String&gt;&gt;&gt;() {
+ 
+ *       new Checker&lt;Queue&lt;String&gt;&gt;() {
  *          &#064;Override
  *          public boolean check(Queue&lt;String&gt; queue) {
  *             return !queue.isEmpty();
@@ -38,7 +38,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  *
  * // Some other thread
  * outputQueue.writeAccess(
- *    new Accessor&lt;&lt;Queue&lt;String&gt;&gt;&gt;() {
+ *    new Accessor&lt;Queue&lt;String&gt;&gt;() {
  *       &#064;Override
  *       public Queue&lt;String&gt; access(Queue&lt;String&gt; queue) {
  *          queue.add("Hello Monitor!");
@@ -47,7 +47,6 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  * );
  * </pre>
  * @param Value value of the monitor.
- * @author Volodymyr Frolov
  */
 public class Monitor<Value> {
 
@@ -73,14 +72,14 @@ public class Monitor<Value> {
     /**
      * Get a lock which is used for read access synchronization.
      */
-    final public Lock getReadLock() {
+    final protected Lock getReadLock() {
         return this.readLock;
     }
 
     /**
      * Get lock which is used for write access synchronization.
      */
-    final public Lock getWriteLock() {
+    final protected Lock getWriteLock() {
         return this.writeLock;
     }
 
@@ -229,11 +228,11 @@ public class Monitor<Value> {
     }
 
     /**
-     * Obtain a read access to monitor value.
+     * Access monitor value for read (in shared mode).
      *
-     * Return value of a {@code Accessor.access} is ignored.
+     * Return value of {@code Accessor.access} is ignored.
      * @param accessor {@code Accessor} instance to obtain read access. The instance must
-     * not change internal state of the value in {@code Accessor.access} method.
+     * not change internal state of value in {@code Accessor.access} method.
      */
     final public void readAccess(Accessor<Value> accessor) {
         Lock lockedObject = this.getReadLock();
@@ -247,14 +246,14 @@ public class Monitor<Value> {
     }
 
     /**
-     * Causes the current thread to wait until monitor becomes to a certain state defined by
-     * {@link Checker} instance and access monitor value for read.
+     * Causes current thread to wait until monitor becomes to some certain state defined by
+     * {@link Checker} instance and access monitor value for read (in shared mode).
      *
-     * Return value of a {@code Accessor.access} is ignored.
-     * Checker instance must not change a state of the monitor value.
+     * Return value of {@code Accessor.access} is ignored.
+     * Checker instance must not change a state of monitored value.
      * @param accessor {@code Accessor} instance to obtain read access. The instance must
-     * not change internal state of the value in {@code Accessor.access} method.
-     * @param checker {@code Checker} instance to define a state of the monitor value
+     * not change internal state of value in {@code Accessor.access} method.
+     * @param checker {@code Checker} instance to define a state of monitored value
      * when it should be accessed by Accessor.
      * @throws InterruptedException if the current thread is interrupted.
      */
@@ -264,19 +263,19 @@ public class Monitor<Value> {
     }
 
     /**
-     * Causes the current thread to wait until monitor becomes to a certain state defined by
-     * {@link Checker} instance and access monitor value for read.
+     * Causes current thread to wait until monitor becomes to some certain state defined by
+     * {@link Checker} instance and access monitor value for read (in shared mode).
      *
-     * Return value of a {@code Accessor.access} is ignored.
-     * Checker instance must not change a state of the monitor value.
+     * Returned value of {@code Accessor.access} is ignored.
+     * Checker instance must not change a state of monitored value.
      * @param accessor {@code Accessor} instance to obtain read access. The instance must
-     * not change internal state of the value in {@code Accessor.access} method.
-     * @param checker {@code Checker} instance to define a state of the monitor value
+     * not change internal state of value in {@code Accessor.access} method.
+     * @param checker {@code Checker} instance to define a state of monitored value
      * when it should be accessed by Accessor.
      * @param time the maximum time to wait.
      * @param unit the time unit of the time argument.
      * @return {@code true} if the monitor value has been accessed or {@code false} if the waiting
-     * time detectably elapsed before return from the method
+     * time detectably elapsed before return from the method.
      * @throws InterruptedException if the current thread is interrupted.
      */
     final public boolean readAccess(Accessor<Value> accessor, Checker<Value> checker, long time, TimeUnit unit)
@@ -285,11 +284,11 @@ public class Monitor<Value> {
     }
 
     /**
-     * Obtain a write access to monitor value.
+     * Access monitor value for write (in exclusive mode).
      *
-     * Return value of a {@code Accessor.access} becomes new value of a monitor property.
+     * Return value of {@code Accessor.access} becomes new value of monitor.
      * @param accessor {@code Accessor} instance to obtain write access. The instance may
-     * change internal state of the value in {@code Accessor.access} method.
+     * change internal state of value in {@code Accessor.access} method.
      */
     final public void writeAccess(Accessor<Value> accessor) {
         Lock lockedObject = this.getWriteLock();
@@ -304,14 +303,14 @@ public class Monitor<Value> {
     }
 
     /**
-     * Causes the current thread to wait until monitor becomes to a certain state defined by
-     * {@link Checker} instance and access monitor value for write.
+     * Causes current thread to wait until monitor becomes to some certain state defined by
+     * {@link Checker} instance and access monitor value for write (in exclusive mode).
      *
-     * Return value of a {@code Accessor.access} becomes new value of a monitor property.
-     * Checker instance must not change a state of the monitor value.
+     * Return value of {@code Accessor.access} becomes new value of monitor.
+     * Checker instance must not change a state of monitored value.
      * @param accessor {@code Accessor} instance to obtain write access. The instance may
-     * change internal state of the value in {@code Accessor.access} method.
-     * @param checker {@code Checker} instance to define a state of the monitor value
+     * change internal state of value in {@code Accessor.access} method.
+     * @param checker {@code Checker} instance to define a state of monitored value
      * when it should be accessed by Accessor.
      * @throws InterruptedException if the current thread is interrupted.
      */
@@ -321,19 +320,19 @@ public class Monitor<Value> {
     }
 
     /**
-     * Causes the current thread to wait until monitor becomes to a certain state defined by
-     * {@link Checker} instance and access monitor value for write.
+     * Causes current thread to wait until monitor becomes to some certain state defined by
+     * {@link Checker} instance and access monitor value for write (in exclusive mode).
      *
-     * Return value of a {@code Accessor.access} becomes new value of a monitor property.
-     * Checker instance must not change a state of the monitor value.
+     * Return value of {@code Accessor.access} becomes new value of monitor.
+     * Checker instance must not change a state of monitored value.
      * @param accessor {@code Accessor} instance to obtain write access. The instance may
-     * change internal state of the value in {@code Accessor.access} method.
-     * @param checker {@code Checker} instance to define a state of the monitor value
+     * change internal state of value in {@code Accessor.access} method.
+     * @param checker {@code Checker} instance to define a state of monitored value
      * when it should be accessed by Accessor.
      * @param time the maximum time to wait.
      * @param unit the time unit of the time argument.
      * @return {@code true} if the monitor value has been accessed or {@code false} if the waiting
-     * time detectably elapsed before return from the method
+     * time detectably elapsed before return from the method.
      * @throws InterruptedException if the current thread is interrupted.
      */
     final public boolean writeAccess(Accessor<Value> accessor, Checker<Value> checker, long time, TimeUnit unit)
@@ -342,10 +341,10 @@ public class Monitor<Value> {
     }
 
     /**
-     * Set new value of the monitor.
+     * Set new value of monitor.
      *
-     * @param value new value of the monitor.
-     * @return previous value.
+     * @param value new value of monitor.
+     * @return previous value of monitor.
      */
     final public Value set(Value value) {
         Value previousValue;

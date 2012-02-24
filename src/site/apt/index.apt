@@ -22,5 +22,4 @@
 
 Propane Project
 
-  Propane (c3h8) Project provides useful facilities for defining properties
-  in Java classes. All kinds of facilities are declared in c3h8.util package.
+  Propane (c3h8) Project provides implementation of a Monitor Concurrency pattern.

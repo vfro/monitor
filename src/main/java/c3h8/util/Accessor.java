@@ -1,26 +1,22 @@
 package c3h8.util;
 
 /**
- * Value of a {@link Monitor} property cannot be accessed directly from getter.
- * {@code Accessor} interface is used to access the value insead. Value of the {@link Monitor}
- * should be accessed only inside {@code Accessor.access} method and must not be
- * used anywhere outside it.
- * @param Value value of the property to access.
- * @author Volodymyr Frolov
+ * Value of a {@link Monitor} can be accessed only through Accessor instance.
+ *
+ * @param Value Type of monitored value.
  */
 public interface Accessor<Value> {
     /**
-     * Override this method to access the value of the monitor.
-     * When this method is called either shared or exclusive synchronization
-     * was already done.
-     * @param value The value of the monitor to access. This method should change
-     * the internal state of {@code value} only in case of write monitor access.
-     * In this case {@code value} should be used as a return value anyway.
-     * @return In case of write access the returned value will become a new value
-     * of a monitor. If write accessor changed the internal state of {@code value}
-     * object, it must return this parameter anyway.
-     * In case of read access the returned value is ingored and may be either {@code value}
-     * or null.
+     * Access value of a {@link Monitor} in shared (read) or exclusive (write) mode.
+     * In write mode Accessor may change the state of value and modify reference
+     * to monitored value.
+     *
+     * @param value Value of a {@link Monitor}. Implementaion of this method should
+     * change internal state of {@code value} object only in write mode.
+     *
+     * @return In case of write access returned value will be used as new value of
+     * monitor. {@code value} parameter may be returned to leave reference on
+     * the monitored value the same. In case of read access returned value is ingored.
      */
     Value access(Value value);
 }
