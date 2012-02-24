@@ -7,7 +7,7 @@
     <packaging>jar</packaging>
     <version>0.4-SNAPSHOT</version>
     <name>Propane Project</name>
-    <description>Propane Project provides useful facilities for defining properties in Java classes.</description>
+    <description>Propane project provides implementation of a Monitor Concurrency pattern.</description>
     <url>http://vfro.bitbucket.org/c3h8/index.html</url>
     <inceptionYear>2011</inceptionYear>
 
@@ -40,9 +40,6 @@
                 <role>developer</role>
             </roles>
             <timezone>+2</timezone>
-            <properties>
-                <picUrl>http://vfro.bitbucket.org/images/avatar.jpg</picUrl>
-            </properties>
         </developer>
     </developers>
 
