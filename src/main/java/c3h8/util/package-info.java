@@ -1,5 +1,5 @@
 /**
- * Package provides useful facilities for defining properties in Java classes.
+ * Package provides implementation for Monitor Concurrency pattern.
  * @author Volodymyr Frolov
  */
 package c3h8.util;

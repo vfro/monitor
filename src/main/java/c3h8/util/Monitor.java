@@ -50,13 +50,46 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  * @author Volodymyr Frolov
  */
 public class Monitor<Value> {
-    /**
-     * All descendants of {@code Monitor} class will have access to a property
-     * that stores {@code Monitor} value with without synchronization.
-     */
-    final protected Property<Value> rawValue;
 
-    private Condition checkEvent = null;
+    private Value value;
+    private Lock readLock = null;
+    private Lock writeLock = null;
+    private Condition condition = null;
+
+    /**
+     * Get access to monitored value without synchronization.
+     */
+    protected Value getValue() {
+        return this.value;
+    }
+
+    /**
+     * Modify monitored value directly without synchronization.
+     */
+    protected void setValue(Value value) {
+        this.value = value;
+    }
+
+    /**
+     * Get a lock which is used for read access synchronization.
+     */
+    final public Lock getReadLock() {
+        return this.readLock;
+    }
+
+    /**
+     * Get lock which is used for write access synchronization.
+     */
+    final public Lock getWriteLock() {
+        return this.writeLock;
+    }
+
+    /**
+     * Get a condition variable which is signaled after state of monitired value becomes changed.
+     */
+    final protected Condition getCondition() {
+        return this.condition;
+    }
 
     private static class TimeTracker {
         private long origin;
@@ -105,15 +138,15 @@ public class Monitor<Value> {
         Lock aquiredLock = null;
 
         try {
-            Lock tryLock = this.wlock.get();
+            Lock tryLock = this.getWriteLock();
             if (tryLock.tryLock(time, TimeTracker.systemUnit(unit))) {
                 aquiredLock = tryLock;
             } else {
                 return false;
             }
 
-            while (!checker.check(this.rawValue.get())) {
-                while (!this.checkEvent.await(timeTracker.timeLeft(), TimeTracker.systemUnit(unit))) {
+            while (!checker.check(this.getValue())) {
+                while (!this.condition.await(timeTracker.timeLeft(), TimeTracker.systemUnit(unit))) {
                     if (!timeTracker.hasMoreTime()) {
                         return false;
                     }
@@ -121,13 +154,13 @@ public class Monitor<Value> {
             }
 
             if (isWrite) {
-                this.rawValue.set(accessor.access(this.rawValue.get()));
-                this.checkEvent.signalAll();
+                this.setValue(accessor.access(this.getValue()));
+                this.condition.signalAll();
             } else {
-                this.rlock.get().lock();
+                this.getReadLock().lock();
                 aquiredLock.unlock();
-                aquiredLock = this.rlock.get();
-                accessor.access(this.rawValue.get());
+                aquiredLock = this.getReadLock();
+                accessor.access(this.getValue());
             }
         }
         finally {
@@ -143,22 +176,22 @@ public class Monitor<Value> {
         ) throws InterruptedException {
         Lock lockedObject = null;
         try {
-            Lock tryLock = this.wlock.get();
+            Lock tryLock = this.getWriteLock();
             tryLock.lockInterruptibly();
             lockedObject = tryLock;
-            while (!checker.check(this.rawValue.get())) {
-                this.checkEvent.await();
+            while (!checker.check(this.getValue())) {
+                this.condition.await();
             }
 
             if (isWrite) {
-                this.rawValue.set(accessor.access(this.rawValue.get()));
-                this.checkEvent.signalAll();
+                this.setValue(accessor.access(this.getValue()));
+                this.condition.signalAll();
             } else {
-                Lock downgradeLock = this.rlock.get();
+                Lock downgradeLock = this.getReadLock();
                 downgradeLock.lockInterruptibly();
                 lockedObject.unlock();
                 lockedObject = downgradeLock;
-                accessor.access(this.rawValue.get());
+                accessor.access(this.getValue());
             }
         }
         finally {
@@ -169,50 +202,30 @@ public class Monitor<Value> {
     }
 
     /**
-     * A lock which is used for read access synchronization. Read/Write lock
-     * must be reenterant and support lock downgrading (Acquiring read lock inside
-     * write lock, and release write lock after that).
-     *
-     * By default the value of a property is a read lock of a {@code java.util.concurrent.locks.ReentrantReadWriteLock()}
-     * instance.
-     */
-    public final Property<Lock> rlock = new Property<Lock>(null);
-
-    /**
-     * A lock which is used for write access synchronization. Read/Write lock
-     * must be reenterant and support lock downgrading (Acquiring read lock inside
-     * write lock, and release write lock after that).
-     *
-     * By default the value of a property is a read lock of a {@code java.util.concurrent.locks.ReentrantReadWriteLock()}
-     * instance.
-     */
-    public final Property<Lock> wlock = new Property<Lock>(null) {
-        @Override
-        public void set(Lock lock) {
-            Monitor.this.checkEvent = lock.newCondition();
-            super.set(lock);
-        }
-    };
-
-    /**
-     * Constructor for descendants of Monitor class to allows redefining setters/getters
-     * of rawValue property.
-     */
-    protected Monitor(Property<Value> rawValue, Lock readLock, Lock writeLock) {
-        this.rawValue = rawValue;
-        this.rlock.set(readLock);
-        this.wlock.set(writeLock);
-    }
-
-    /**
-     * Create new instance of a monitor initialized by specified value.
+     * Create new instance of Monitor initialized by specified value.
      * @param value initial value of a monitor.
      */
     public Monitor(Value value) {
-        this.rawValue = new Property<Value>(value);
-        ReadWriteLock rwlock = new ReentrantReadWriteLock();
-        this.rlock.set(rwlock.readLock());
-        this.wlock.set(rwlock.writeLock());
+        this.value = value;
+        ReadWriteLock readWriteLock = new ReentrantReadWriteLock();
+        this.readLock = readWriteLock.readLock();
+        this.writeLock = readWriteLock.writeLock();
+        this.condition = this.writeLock.newCondition();
+    }
+
+    /**
+     * Create new instance of Monitor initialized by value and custom locks.
+     *
+     * Custom locks must be reenterant and support lock downgrading (Acquiring
+     * read lock inside write lock, and release write lock after that).
+     *
+     * @param value initial value of a monitor.
+     */
+    protected Monitor(Value value, Lock readLock, Lock writeLock) {
+        this.value = value;
+        this.readLock = readLock;
+        this.writeLock = writeLock;
+        this.condition = this.writeLock.newCondition();
     }
 
     /**
@@ -223,10 +236,10 @@ public class Monitor<Value> {
      * not change internal state of the value in {@code Accessor.access} method.
      */
     final public void readAccess(Accessor<Value> accessor) {
-        Lock lockedObject = this.rlock.get();
+        Lock lockedObject = this.getReadLock();
         try {
             lockedObject.lock();
-            accessor.access(this.rawValue.get());
+            accessor.access(this.getValue());
         }
         finally {
             lockedObject.unlock();
@@ -279,11 +292,11 @@ public class Monitor<Value> {
      * change internal state of the value in {@code Accessor.access} method.
      */
     final public void writeAccess(Accessor<Value> accessor) {
-        Lock lockedObject = this.wlock.get();
+        Lock lockedObject = this.getWriteLock();
         try {
             lockedObject.lock();
-            this.rawValue.set(accessor.access(this.rawValue.get()));
-            this.checkEvent.signalAll();
+            this.setValue(accessor.access(this.getValue()));
+            this.condition.signalAll();
         }
         finally {
             lockedObject.unlock();
@@ -336,12 +349,12 @@ public class Monitor<Value> {
      */
     final public Value set(Value value) {
         Value previousValue;
-        Lock lockedObject = this.wlock.get();
+        Lock lockedObject = this.getWriteLock();
         try {
             lockedObject.lock();
-            previousValue = this.rawValue.get();
-            this.rawValue.set(value);
-            this.checkEvent.signalAll();
+            previousValue = this.getValue();
+            this.setValue(value);
+            this.condition.signalAll();
         }
         finally {
             lockedObject.unlock();
