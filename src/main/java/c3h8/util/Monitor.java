@@ -7,7 +7,7 @@ import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
- * Monitor can be used for concurent access a value and ability to
+ * Monitor can be used for concurrent access to a value and ability to
  * wait until the value becomes into some certain state (defined by a
  * {@link Checker}).<p>
  * <pre>
@@ -60,36 +60,36 @@ public class Monitor<Value> {
     private Condition condition;
 
     /**
-     * Get access to monitored value without synchronization.
+     * Get access to monitored value without any synchronization.
      */
     protected Value getValue() {
         return this.value;
     }
 
     /**
-     * Modify monitored value directly without synchronization.
+     * Modify monitored value directly without any synchronization.
      */
     protected void setValue(Value value) {
         this.value = value;
     }
 
     /**
-     * Get a lock which is used for read access synchronization.
+     * Get a lock which is used for read access.
      */
     protected final Lock getReadLock() {
         return this.readLock;
     }
 
     /**
-     * Get lock which is used for write access synchronization.
+     * Get lock which is used for write access.
      */
     protected final Lock getWriteLock() {
         return this.writeLock;
     }
 
     /**
-     * Get a condition variable which is signaled after state of monitired
-     * value becomes changed.
+     * Get a condition variable which is signalled after state of
+     * the monitored value becomes changed.
      */
     protected final Condition getCondition() {
         return this.condition;
@@ -225,7 +225,7 @@ public class Monitor<Value> {
     /**
      * Create new instance of Monitor initialized by value and custom locks.
      *
-     * Custom locks must be reenterant and support lock downgrading (Acquiring
+     * Custom locks must be re-entrant and support lock downgrading (Acquiring
      * read lock inside write lock, and release write lock after that).
      *
      * @param value initial value of a monitor.
