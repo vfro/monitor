@@ -9,17 +9,21 @@ public final class Sandbox<Value extends Cloneable> implements Cloneable {
     private Value value;
 
     private class PushAccessor implements Accessor<Value> {
-        private boolean success = false;
-        private boolean force = false;
+        private boolean success;
+        private boolean force;
+
+        PushAccessor() {
+            this.success = false;
+            this.force = false;
+        }
 
         @Override
         public Value access(Value value) {
             this.success = false;
 
-            if (this.force || (
-                    Sandbox.this.check != null &&
-                    Sandbox.this.check.get() == value)
-                ) {
+            if (this.force
+                || Sandbox.this.check != null
+                    && Sandbox.this.check.get() == value) {
                 this.success = true;
                 return Sandbox.this.value;
             }
@@ -54,6 +58,9 @@ public final class Sandbox<Value extends Cloneable> implements Cloneable {
     }
 
     private class PullAccessor implements Accessor<Value> {
+        PullAccessor() {
+        }
+
         @Override
         public Value access(Value value) {
             Sandbox.this.set(Sandbox.cloneValue(value));
@@ -115,8 +122,8 @@ public final class Sandbox<Value extends Cloneable> implements Cloneable {
     @Override
     @SuppressWarnings("unchecked")
     public boolean equals(Object obj) {
-        if (obj == null ||
-            !this.getClass().equals(obj.getClass())
+        if (obj == null
+            || !this.getClass().equals(obj.getClass())
            ) {
             return false;
         }
@@ -131,7 +138,8 @@ public final class Sandbox<Value extends Cloneable> implements Cloneable {
 
     @Override
     public Sandbox<Value> clone() {
-        Sandbox<Value> same = new Sandbox<Value>(Sandbox.cloneValue(this.value));
+        Sandbox<Value> same =
+            new Sandbox<Value>(Sandbox.cloneValue(this.value));
         same.check = this.check;
         return same;
     }

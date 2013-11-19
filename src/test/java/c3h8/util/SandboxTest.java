@@ -6,6 +6,7 @@ import static org.testng.Assert.fail;
 import static org.testng.Assert.assertTrue;
 import static org.testng.Assert.assertFalse;
 import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertNotEquals;
 
 public class SandboxTest {
 
@@ -153,7 +154,7 @@ public class SandboxTest {
     public void sandboxToString() {
         CloneableString string = new CloneableString("string");
         Sandbox<CloneableString> sandbox = new Sandbox<CloneableString>(string);
-        assertEquals(sandbox.toString(), string.toString(), "Sandbox.toString() equals to Sandbox.get().toString()");
+        assertEquals(sandbox.toString(), string.toString(), "Sandbox.toString() equals to Sandbox.get().toString().");
     }
 
     @Test
@@ -169,14 +170,23 @@ public class SandboxTest {
         CloneableString stringTwo = new CloneableString("string");
         sandboxTwo.set(stringTwo);
 
-        assertEquals(sandboxOne, sandboxTwo, "Sandbox.equals() equals other Sandbox with the same value");
+        assertEquals(sandboxOne, sandboxTwo, "Sandbox.equals() equals other Sandbox with the same value.");
+    }
+
+    @Test
+    public void sandboxNotEquals() {
+        CloneableString string = new CloneableString("string");
+        Sandbox<CloneableString> sandbox = new Sandbox<CloneableString>(string);
+
+        assertNotEquals(sandbox, null, "Sandbox.equals() doesn't equals to null.");
+        assertNotEquals(sandbox, string, "Sandbox.equals() doesn't equals to value.");
     }
 
     @Test
     public void sandboxHashCode() {
         CloneableString string = new CloneableString("string");
         Sandbox<CloneableString> sandbox = new Sandbox<CloneableString>(string);
-        assertEquals(sandbox.hashCode(), string.hashCode(), "Sandbox.hashCode() equals to Sandbox.get().hashCode()");
+        assertEquals(sandbox.hashCode(), string.hashCode(), "Sandbox.hashCode() equals to Sandbox.get().hashCode().");
     }
 
     @Test
@@ -184,6 +194,6 @@ public class SandboxTest {
         CloneableString string = new CloneableString("string");
         Sandbox<CloneableString> sandbox = new Sandbox<CloneableString>(string);
         Sandbox<CloneableString> clone = sandbox.clone();
-        assertEquals(clone, sandbox, "Sandbox.clone() equals to itself");
+        assertEquals(clone, sandbox, "Sandbox.clone() equals to itself.");
     }
 }
