@@ -29,22 +29,12 @@ public class MonitorConcurrentTest {
                 try {
                     barrier.await();
                     monitor.readAccess(
-                        new Accessor<String>() {
-                            @Override
-                            public String access(String value) {
+                        value -> {
                                 if (!value.equals("reader-await")) {
-                                    errors.add("monitor reader checker doesn't work.");
+                                    errors.add("monitor reader predicate doesn't work.");
                                 }
-                                return value;
-                            }
-                        },
-
-                        new Checker<String>() {
-                            @Override
-                            public boolean check(String value) {
-                                return value.equals("reader-await");
-                            }
-                        }
+                            },
+                        value -> value.equals("reader-await")
                     );
                 } catch(InterruptedException e) {
                     errors.add(e);
@@ -60,21 +50,13 @@ public class MonitorConcurrentTest {
                 try {
                     barrier.await();
                     monitor.writeAccess(
-                        new Accessor<String>() {
-                            @Override
-                            public String access(String value) {
+                        value -> {
                                 if (!value.equals("writer-await")) {
-                                    errors.add("monitor write checker doesn't work.");
+                                    errors.add("monitor write predicate doesn't work.");
                                 }
                                 return "reader-await";
-                            }
-                        },
-                        new Checker<String>() {
-                            @Override
-                            public boolean check(String value) {
-                                return value.equals("writer-await");
-                            }
-                        }
+                            },
+                        value -> value.equals("writer-await")
                     );
                 } catch(InterruptedException e) {
                     errors.add(e);
@@ -93,13 +75,9 @@ public class MonitorConcurrentTest {
         reader.join();
         writer.join();
 
-        monitor.readAccess(new Accessor<String>() {
-            @Override
-            public String access(String value) {
+        monitor.readAccess(value -> {
                 assertEquals(value, "reader-await", "Test Monitor writeAccess/readAccess.");
-                return null;
-            }
-        });
+            });
         assertEquals(errors.size(), 0, "Test monitor has no errors during writeAccess/readAccess.");
     }
 
@@ -113,13 +91,10 @@ public class MonitorConcurrentTest {
             result += i;
             final int item = i;
             sum.writeAccess(
-                    new Accessor<Stack<Integer>>() {
-                        @Override
-                        public Stack<Integer> access(Stack<Integer> stackSum) {
-                            stackSum.push(item);
-                            return stackSum;
-                        }
-                });
+                stackSum -> {
+                        stackSum.push(item);
+                        return stackSum;
+                    });
         }
         final int finalResult = result;
 
@@ -135,21 +110,13 @@ public class MonitorConcurrentTest {
                                 barrier.await();
                                 while(true) {
                                     sum.writeAccess(
-                                            new Accessor<Stack<Integer>>() {
-                                                @Override
-                                                public Stack<Integer> access(Stack<Integer> stackSum) {
-                                                    int value1 = stackSum.pop();
-                                                    int value2 = stackSum.pop();
-                                                    stackSum.push(value1 + value2);
-                                                    return stackSum;
-                                                }
+                                            stackSum -> {
+                                                int value1 = stackSum.pop();
+                                                int value2 = stackSum.pop();
+                                                stackSum.push(value1 + value2);
+                                                return stackSum;
                                             },
-                                            new Checker<Stack<Integer>>() {
-                                                @Override
-                                                public boolean check(Stack<Integer> stackSum) {
-                                                    return stackSum.size() >= 2;
-                                                }
-                                            }
+                                            stackSum -> stackSum.size() >= 2
                                         );
                                 }
                             } catch(InterruptedException e) {
@@ -165,20 +132,10 @@ public class MonitorConcurrentTest {
 
         barrier.await();
         sum.readAccess(
-                new Accessor<Stack<Integer>>() {
-                    @Override
-                    public Stack<Integer> access(Stack<Integer> stackSum) {
-                        int result = stackSum.pop();
-                        assertEquals(finalResult, result, "Workers have calculated resuld correctly.");
-                        return stackSum;
-                    }
+                stackSum -> {
+                    assertEquals(finalResult, (int)stackSum.pop(), "Workers have calculated resuld correctly.");
                 },
-                new Checker<Stack<Integer>>() {
-                    @Override
-                    public boolean check(Stack<Integer> stackSum) {
-                        return stackSum.size() == 1;
-                    }
-                }
+                stackSum -> stackSum.size() == 1
             );
 
         assertEquals(errors.size(), 0, "Test monitor has no errors during calculating sum.");

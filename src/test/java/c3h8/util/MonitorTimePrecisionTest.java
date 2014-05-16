@@ -53,18 +53,11 @@ public class MonitorTimePrecisionTest {
                 Monitor<String> monitor = new Monitor<String>(null);
                 long now = systemTimer(units[unit]);
                 boolean result = monitor.readAccess(
-                    new Accessor<String>() {
-                        @Override
-                        public String access(String value) {
-                            fail("Never reach read access for false Checker.");
-                            return null;
-                        }
-                    }, new Checker<String>() {
-                        @Override
-                        public boolean check(String value) {
-                            return false;
-                        }
-                    }, delays[unit], units[unit]);
+                    value -> {
+                            fail("Never reach read access for false Predicate.");
+                        },
+                    x -> false,
+                    delays[unit], units[unit]);
                 assertFalse(result,
                     "Test Monitor.readAccess interrupt wait for units:" + units[unit].toString());
                 assertTrue(systemTimer(units[unit]) >= toSystemUnits(delays[unit], units[unit]) + now,
@@ -80,18 +73,12 @@ public class MonitorTimePrecisionTest {
                 Monitor<String> monitor = new Monitor<String>(null);
                 long now = systemTimer(units[unit]);
                 boolean result = monitor.writeAccess(
-                    new Accessor<String>() {
-                        @Override
-                        public String access(String value) {
-                            fail("Never reach read access for false Checker.");
+                    value -> {
+                            fail("Never reach read access for false Predicate.");
                             return null;
-                        }
-                    }, new Checker<String>() {
-                        @Override
-                        public boolean check(String value) {
-                            return false;
-                        }
-                    }, delays[unit], units[unit]);
+                    },
+                    x -> false,
+                    delays[unit], units[unit]);
                 assertFalse(result,
                     "Test Monitor.writeAccess interrupt wait for units:" + units[unit].toString());
                 assertTrue(systemTimer(units[unit]) >= toSystemUnits(delays[unit], units[unit]) + now,
