@@ -28,8 +28,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  *             // Write access lambda must return the parameter object
  *             // to preserve reference to the queue
  *             return queue;
- *          }
- *       },
+ *          },
  *       queue -&gt; !queue.isEmpty()
  *    );
  * }
