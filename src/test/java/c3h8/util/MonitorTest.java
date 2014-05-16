@@ -25,13 +25,9 @@ public class MonitorTest {
     public void monitorConstructorReadAccess() {
         final String monitorValue = "Test";
         Monitor<String> monitor = new Monitor<String>(monitorValue);
-        monitor.readAccess(new Accessor<String>() {
-            @Override
-            public String access(String value) {
+        monitor.readAccess(value -> {
                 assertTrue(monitorValue == value, "Test Monitor.readAccess() with value passed into constructor.");
-                return null;
-            }
-        });
+            });
     }
 
     @Test
@@ -39,180 +35,63 @@ public class MonitorTest {
         final String monitorValue = "Test";
         Monitor<String> monitor = new Monitor<String>(null);
         assertNull(monitor.set(monitorValue), "Test Monitor.set method returns previous value.");
-        monitor.readAccess(new Accessor<String>() {
-            @Override
-            public String access(String value) {
+        monitor.readAccess(value -> {
                 assertTrue(monitorValue == value, "Test Monitor.readAccess() with value passed into setter.");
-                return null;
-            }
-        });
+            });
     }
 
     @Test
     public void monitorWriteReadAccess() {
         final String monitorValue = "Test";
         Monitor<String> monitor = new Monitor<String>(null);
-        monitor.writeAccess(new Accessor<String>() {
-            @Override
-            public String access(String value) {
-                return monitorValue;
-            }
-        });
-        monitor.readAccess(new Accessor<String>() {
-            @Override
-            public String access(String value) {
+        monitor.writeAccess(value -> monitorValue);
+        monitor.readAccess(value -> {
                 assertTrue(monitorValue == value, "Test Monitor.readAccess() with value from write access.");
-                return null;
-            }
-        });
-    }
-
-    @Test
-    public void monitorReadAccessCannotChangeValue() {
-        final List<Object> accessed = new LinkedList<Object>();
-        final String initialValue = "initial";
-        final String modifiedValue = "modified";
-        Monitor<String> monitor = new Monitor<String>(initialValue);
-        monitor.readAccess(new Accessor<String>() {
-            @Override
-            public String access(String value) {
-                accessed.add(value);
-                return modifiedValue;
-            }
-        });
-        monitor.readAccess(new Accessor<String>() {
-            @Override
-            public String access(String value) {
-                assertTrue(initialValue == value, "Test Monitor.readAccess() cannot change value.");
-                return null;
-            }
-        });
-        assertEquals(accessed.size(), 1, "Test Monitor.readAccess() accessed value properly");
-        assertEquals(accessed.get(0), initialValue, "Test Monitor.readAccess() accessed proper value");
-    }
-
-    @Test
-    public void monitorReadAccessWithCheckerCannotChangeValue() throws InterruptedException {
-        final List<Object> accessed = new LinkedList<Object>();
-        final String initialValue = "initial";
-        final String modifiedValue = "modified";
-        Monitor<String> monitor = new Monitor<String>(initialValue);
-        monitor.readAccess(
-            new Accessor<String>() {
-                @Override
-                public String access(String value) {
-                    accessed.add(value);
-                    return modifiedValue;
-                }
-            },
-            new Checker<String>() {
-                @Override
-                public boolean check(String value) {
-                    return true;
-                }
-            }
-        );
-        monitor.readAccess(new Accessor<String>() {
-            @Override
-            public String access(String value) {
-                assertTrue(initialValue == value, "Test Monitor.readAccess() with Checker cannot change value.");
-                return null;
-            }
-        });
-        assertEquals(accessed.size(), 1, "Test Monitor.readAccess() with Checker accessed value properly");
-        assertEquals(accessed.get(0), initialValue, "Test Monitor.readAccess() with Checker accessed proper value");
-    }
-
-    @Test
-    public void monitorReadAccessMillisCannotChangeValue() throws InterruptedException {
-        final List<Object> accessed = new LinkedList<Object>();
-        final String initialValue = "initial";
-        final String modifiedValue = "modified";
-        Monitor<String> monitor = new Monitor<String>(initialValue);
-        monitor.readAccess(
-            new Accessor<String>() {
-                @Override
-                public String access(String value) {
-                    accessed.add(value);
-                    return modifiedValue;
-                }
-            },
-            new Checker<String>() {
-                @Override
-                public boolean check(String value) {
-                    return true;
-                }
-            }, 1000, TimeUnit.MILLISECONDS
-        );
-        monitor.readAccess(new Accessor<String>() {
-            @Override
-            public String access(String value) {
-                assertTrue(initialValue == value, "Test Monitor.readAccess() with Milliseconds cannot change value.");
-                return null;
-            }
-        });
-        assertEquals(accessed.size(), 1, "Test Monitor.readAccess() with Milliseconds accessed value properly");
-        assertEquals(accessed.get(0), initialValue, "Test Monitor.readAccess() with Milliseconds accessed proper value");
-    }
-
-    @Test
-    public void monitorWriteAccessChecker() throws InterruptedException {
-        final String initialValue = "initial";
-        final String modifiedValue = "modified";
-        Monitor<String> monitor = new Monitor<String>(initialValue);
-
-        monitor.writeAccess(
-            new Accessor<String>() {
-                @Override
-                public String access(String value) {
-                    assertTrue(value == initialValue, "Motitor has initial value before modification.");
-                    return modifiedValue;
-                }
-            }, new Checker<String>() {
-                @Override
-                public boolean check(String value) {
-                    assertTrue(value == initialValue, "Motitor has initial value inside checker.");
-                    return value == initialValue;
-                }
             });
-
-        monitor.readAccess(new Accessor<String>() {
-            @Override
-            public String access(String value) {
-                assertTrue(modifiedValue == value, "Monitor has changed value after modification.");
-                return null;
-            }
-        });
     }
 
     @Test
-    public void monitorWriteAccessMillisChecker() throws InterruptedException {
+    public void monitorWriteAccessPredicate() throws InterruptedException {
         final String initialValue = "initial";
         final String modifiedValue = "modified";
         Monitor<String> monitor = new Monitor<String>(initialValue);
 
         monitor.writeAccess(
-            new Accessor<String>() {
-                @Override
-                public String access(String value) {
+            value -> {
                     assertTrue(value == initialValue, "Motitor has initial value before modification.");
                     return modifiedValue;
-                }
-            }, new Checker<String>() {
-                @Override
-                public boolean check(String value) {
-                    assertTrue(value == initialValue, "Motitor has initial value inside checker.");
+                },
+            value -> {
+                    assertTrue(value == initialValue, "Motitor has initial value inside predicate.");
                     return value == initialValue;
                 }
-            }, 1000, TimeUnit.MILLISECONDS);
+            );
 
-        monitor.readAccess(new Accessor<String>() {
-            @Override
-            public String access(String value) {
+        monitor.readAccess(value -> {
                 assertTrue(modifiedValue == value, "Monitor has changed value after modification.");
-                return null;
-            }
-        });
+            });
+    }
+
+    @Test
+    public void monitorWriteAccessMillispredicate() throws InterruptedException {
+        final String initialValue = "initial";
+        final String modifiedValue = "modified";
+        Monitor<String> monitor = new Monitor<String>(initialValue);
+
+        monitor.writeAccess(
+            value -> {
+                    assertTrue(value == initialValue, "Motitor has initial value before modification.");
+                    return modifiedValue;
+                },
+            value -> {
+                    assertTrue(value == initialValue, "Motitor has initial value inside predicate.");
+                    return value == initialValue;
+                },
+            1000, TimeUnit.MILLISECONDS);
+
+        monitor.readAccess(value -> {
+                assertTrue(modifiedValue == value, "Monitor has changed value after modification.");
+            });
     }
 
     @Test

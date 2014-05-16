@@ -1,5 +1,9 @@
 package c3h8.util;
 
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.Predicate;
+
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
@@ -8,8 +12,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
  * Monitor can be used for concurrent access to a value and ability to
- * wait until the value becomes into some certain state (defined by a
- * {@link Checker}).<p>
+ * wait until the value becomes into some certain state.<p>
  * <pre>
  * Monitor&lt;Queue&lt;String&gt;&gt; outputQueue =
  *    new Monitor&lt;Queue&lt;String&gt;&gt;(new LinkedList&lt;String&gt;());
@@ -19,35 +22,24 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  *    // Wait until some string is added to a queue
  *    // and printit into System.out
  *    outputQueue.writeAccess(
- *       new Accessor&lt;Queue&lt;String&gt;&gt;() {
- *          &#064;Override
- *          public Queue&lt;String&gt; access(Queue&lt;String&gt; queue) {
+ *       queue -&gt; {
  *             System.out.println(queue.pull());
  *
- *             // Write access method must return the parameter object
+ *             // Write access lambda must return the parameter object
  *             // to preserve reference to the queue
  *             return queue;
  *          }
  *       },
- *
- *       new Checker&lt;Queue&lt;String&gt;&gt;() {
- *          &#064;Override
- *          public boolean check(Queue&lt;String&gt; queue) {
- *             return !queue.isEmpty();
- *          }
- *       }
+ *       queue -&gt; !queue.isEmpty()
  *    );
  * }
  *
  * // Some other thread
  * outputQueue.writeAccess(
- *    new Accessor&lt;Queue&lt;String&gt;&gt;() {
- *       &#064;Override
- *       public Queue&lt;String&gt; access(Queue&lt;String&gt; queue) {
+ *    queue -&gt; {
  *          queue.add("Hello Monitor!");
  *          return queue;
  *       }
- *    }
  * );
  * </pre>
  * @param <Value> value of the monitor.
@@ -139,7 +131,7 @@ public class Monitor<Value> {
     };
 
     private boolean accessByTime(
-            Accessor<Value> accessor, Checker<Value> checker,
+            Function<Value, Value> function, Predicate<Value> predicate,
             long time, TimeUnit unit, boolean isWrite
         ) throws InterruptedException {
         TimeTracker timeTracker = new TimeTracker(time, unit);
@@ -153,7 +145,7 @@ public class Monitor<Value> {
                 return false;
             }
 
-            while (!checker.check(this.getValue())) {
+            while (!predicate.test(this.getValue())) {
                 while (!this.condition.await(
                         timeTracker.timeLeft(),
                         TimeTracker.systemUnit(unit)
@@ -165,13 +157,13 @@ public class Monitor<Value> {
             }
 
             if (isWrite) {
-                this.setValue(accessor.access(this.getValue()));
+                this.setValue(function.apply(this.getValue()));
                 this.condition.signalAll();
             } else {
                 this.getReadLock().lock();
                 aquiredLock.unlock();
                 aquiredLock = this.getReadLock();
-                accessor.access(this.getValue());
+                function.apply(this.getValue());
             }
         } finally {
             if (aquiredLock != null) {
@@ -181,27 +173,27 @@ public class Monitor<Value> {
         return true;
     }
 
-    private void accessByChecker(
-            Accessor<Value> accessor, Checker<Value> checker, boolean isWrite
+    private void accessByPredicate(
+            Function<Value, Value> function, Predicate<Value> predicate, boolean isWrite
         ) throws InterruptedException {
         Lock lockedObject = null;
         try {
             Lock tryLock = this.getWriteLock();
             tryLock.lockInterruptibly();
             lockedObject = tryLock;
-            while (!checker.check(this.getValue())) {
+            while (!predicate.test(this.getValue())) {
                 this.condition.await();
             }
 
             if (isWrite) {
-                this.setValue(accessor.access(this.getValue()));
+                this.setValue(function.apply(this.getValue()));
                 this.condition.signalAll();
             } else {
                 Lock downgradeLock = this.getReadLock();
                 downgradeLock.lockInterruptibly();
                 lockedObject.unlock();
                 lockedObject = downgradeLock;
-                accessor.access(this.getValue());
+                function.apply(this.getValue());
             }
         } finally {
             if (lockedObject != null) {
@@ -241,18 +233,16 @@ public class Monitor<Value> {
     }
 
     /**
-     * Access monitor value for read (in shared mode).
+     * Access monitored value for read (in shared mode).
      *
-     * Return value of {@code Accessor.access} is ignored.
-     * @param accessor {@code Accessor} instance to obtain read access.
-     * The instance must not change internal state of value in
-     * {@code Accessor.access} method.
+     * @param consumer to obtain read access.
+     * The consumer must not change internal state of monitored value.
      */
-    public final void readAccess(Accessor<Value> accessor) {
+    public final void readAccess(Consumer<Value> consumer) {
         Lock lockedObject = this.getReadLock();
         try {
             lockedObject.lock();
-            accessor.access(this.getValue());
+            consumer.accept(this.getValue());
         } finally {
             lockedObject.unlock();
         }
@@ -260,63 +250,64 @@ public class Monitor<Value> {
 
     /**
      * Causes current thread to wait until monitor becomes to some certain
-     * state defined by {@link Checker} instance and access monitor value for
-     * read (in shared mode).
+     * state and access monitored value for read (in shared mode).
      *
-     * Return value of {@code Accessor.access} is ignored.
-     * Checker instance must not change a state of monitored value.
-     * @param accessor {@code Accessor} instance to obtain read access.
-     * The instance must not change internal state of value in
-     * {@code Accessor.access} method.
-     * @param checker {@code Checker} instance to define a state of monitored
-     * value when it should be accessed by Accessor.
+     * Predicate expression must not change a state of monitored value.
+     * @param consumer to obtain read access.
+     * Consumer must not change internal state of monitored value.
+     * @param predicate to define a state of monitored value.
      * @throws InterruptedException if the current thread is interrupted.
      */
     public final void readAccess(
-            Accessor<Value> accessor, Checker<Value> checker
+            Consumer<Value> consumer, Predicate<Value> predicate
         ) throws InterruptedException {
-        accessByChecker(accessor, checker, false);
+        accessByPredicate(
+            value -> {
+                consumer.accept(value);
+                return value;
+            },
+            predicate, false);
     }
 
     /**
      * Causes current thread to wait until monitor becomes to some certain
-     * state defined by {@link Checker} instance and access monitor value for
-     * read (in shared mode).
+     * state and access monitored value for read (in shared mode).
      *
-     * Returned value of {@code Accessor.access} is ignored.
-     * Checker instance must not change a state of monitored value.
-     * @param accessor {@code Accessor} instance to obtain read access.
-     * The instance must not change internal state of value in
-     * {@code Accessor.access} method.
-     * @param checker {@code Checker} instance to define a state of monitored
-     * value when it should be accessed by Accessor.
+     * Predicate instance must not change a state of monitored value.
+     * @param consumer to obtain read access.
+     * The instance must not change internal state of monitored value.
+     * @param predicate to define a state of monitored value.
      * @param time the maximum time to wait.
      * @param unit the time unit of the time argument.
-     * @return {@code true} if the monitor value has been accessed or
+     * @return {@code true} if the monitored value has been accessed or
      * {@code false} if the waiting time detectably elapsed before return
      * from the method.
      * @throws InterruptedException if the current thread is interrupted.
      */
     public final boolean readAccess(
-            Accessor<Value> accessor, Checker<Value> checker,
+            Consumer<Value> consumer, Predicate<Value> predicate,
             long time, TimeUnit unit
         ) throws InterruptedException {
-        return this.accessByTime(accessor, checker, time, unit, false);
+        return this.accessByTime(
+            value -> {
+                consumer.accept(value);
+                return value;
+            },
+            predicate, time, unit, false);
     }
 
     /**
-     * Access monitor value for write (in exclusive mode).
+     * Access monitored value for write (in exclusive mode).
      *
-     * Return value of {@code Accessor.access} becomes new value of monitor.
-     * @param accessor {@code Accessor} instance to obtain read access.
-     * The instance must not change internal state of value in
-     * {@code Accessor.access} method.
+     * Return value of function becomes new value of monitor.
+     * @param function instance change monitored value.
+     * The function may change internal state of monitored value.
      */
-    public final void writeAccess(Accessor<Value> accessor) {
+    public final void writeAccess(Function<Value, Value> function) {
         Lock lockedObject = this.getWriteLock();
         try {
             lockedObject.lock();
-            this.setValue(accessor.access(this.getValue()));
+            this.setValue(function.apply(this.getValue()));
             this.condition.signalAll();
         } finally {
             lockedObject.unlock();
@@ -325,48 +316,40 @@ public class Monitor<Value> {
 
     /**
      * Causes current thread to wait until monitor becomes to some certain
-     * state defined by {@link Checker} instance and access monitor value for
-     * write (in exclusive mode).
+     * state and access monitored value for write (in exclusive mode).
      *
-     * Return value of {@code Accessor.access} becomes new value of monitor.
-     * Checker instance must not change a state of monitored value.
-     * @param accessor {@code Accessor} instance to obtain write access.
-     * The instance may change internal state of value in
-     * {@code Accessor.access} method.
-     * @param checker {@code Checker} instance to define a state of monitored
-     * value when it should be accessed by Accessor.
+     * Return value of function becomes new value of monitor.
+     * @param function to obtain write access.
+     * The function may change internal state of monitored value.
+     * @param predicate to define a state of monitored value.
      * @throws InterruptedException if the current thread is interrupted.
      */
     public final void writeAccess(
-            Accessor<Value> accessor, Checker<Value> checker
+            Function<Value, Value> function, Predicate<Value> predicate
         ) throws InterruptedException {
-        accessByChecker(accessor, checker, true);
+        accessByPredicate(function, predicate, true);
     }
 
     /**
      * Causes current thread to wait until monitor becomes to some certain
-     * state defined by {@link Checker} instance and access monitor value for
-     * write (in exclusive mode).
+     * state and access monitored value for write (in exclusive mode).
      *
-     * Return value of {@code Accessor.access} becomes new value of monitor.
-     * Checker instance must not change a state of monitored value.
-     * @param accessor {@code Accessor} instance to obtain write access.
-     * The instance may change internal state of value in
-     * {@code Accessor.access} method.
-     * @param checker {@code Checker} instance to define a state of monitored
-     * value when it should be accessed by Accessor.
+     * Return value of function becomes new value of monitor.
+     * @param function to obtain write access.
+     * The function may change internal state of monitored value.
+     * @param predicate to define a state of monitored value.
      * @param time the maximum time to wait.
      * @param unit the time unit of the time argument.
-     * @return {@code true} if the monitor value has been accessed or
+     * @return {@code true} if the monitored value has been accessed or
      * {@code false} if the waiting time detectably elapsed before return
      * from the method.
      * @throws InterruptedException if the current thread is interrupted.
      */
     public final boolean writeAccess(
-            Accessor<Value> accessor, Checker<Value> checker,
+            Function<Value, Value> function, Predicate<Value> predicate,
             long time, TimeUnit unit
         ) throws InterruptedException {
-        return this.accessByTime(accessor, checker, time, unit, true);
+        return this.accessByTime(function, predicate, time, unit, true);
     }
 
     /**

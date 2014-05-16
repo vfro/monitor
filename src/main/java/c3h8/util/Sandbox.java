@@ -7,41 +7,7 @@ public final class Sandbox<Value extends Cloneable> implements Cloneable {
 
     private WeakReference<Value> check;
     private Value value;
-
-    private class PushAccessor implements Accessor<Value> {
-        private boolean success;
-        private boolean force;
-
-        PushAccessor() {
-            this.success = false;
-            this.force = false;
-        }
-
-        @Override
-        public Value access(Value value) {
-            this.success = false;
-
-            if (this.force
-                || Sandbox.this.check != null
-                    && Sandbox.this.check.get() == value) {
-                this.success = true;
-                return Sandbox.this.value;
-            }
-            return value;
-        }
-
-        void setForce(boolean force) {
-            this.force = force;
-        }
-
-        boolean getForce() {
-            return this.force;
-        }
-
-        boolean isSuccess() {
-            return this.success;
-        }
-    }
+    private boolean pushResult;
 
     @SuppressWarnings("unchecked")
     private static <Value> Value cloneValue(Value value) {
@@ -57,24 +23,10 @@ public final class Sandbox<Value extends Cloneable> implements Cloneable {
         return result;
     }
 
-    private class PullAccessor implements Accessor<Value> {
-        PullAccessor() {
-        }
-
-        @Override
-        public Value access(Value value) {
-            Sandbox.this.set(Sandbox.cloneValue(value));
-            Sandbox.this.check = new WeakReference<Value>(value);
-            return value;
-        }
-    }
-
-    private PushAccessor pushAccessor = new PushAccessor();
-    private PullAccessor pullAccessor = new PullAccessor();
-
     public Sandbox() {
         this.value = null;
         this.check = null;
+        this.pushResult = false;
     }
 
     public Sandbox(Value value) {
@@ -96,7 +48,12 @@ public final class Sandbox<Value extends Cloneable> implements Cloneable {
     }
 
     public Value pull(Monitor<Value> monitor) {
-        monitor.readAccess(this.pullAccessor);
+        monitor.readAccess(
+            value -> {
+                Sandbox.this.set(Sandbox.cloneValue(value));
+                Sandbox.this.check = new WeakReference<Value>(value);
+            });
+
         return this.value;
     }
 
@@ -104,10 +61,19 @@ public final class Sandbox<Value extends Cloneable> implements Cloneable {
         return this.push(monitor, false);
     }
 
-    public boolean push(Monitor<Value> monitor, boolean force) {
-        this.pushAccessor.setForce(force);
-        monitor.writeAccess(this.pushAccessor);
-        if (pushAccessor.isSuccess()) {
+    public boolean push(Monitor<Value> monitor, final boolean force) {
+        monitor.writeAccess(
+            value -> {
+                Sandbox.this.pushResult = false;
+                if (force ||
+                    (Sandbox.this.check != null && Sandbox.this.check.get() == value)) {
+                    Sandbox.this.pushResult = true;
+                    return Sandbox.this.value;
+                }
+                return value;
+            });
+
+        if (this.pushResult) {
             check = new WeakReference<Value>(value);
             return true;
         }
