@@ -1,4 +1,4 @@
-package c3h8.util;
+package com.github.vfro;
 
 import java.util.function.Consumer;
 import java.util.function.Function;

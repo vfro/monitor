@@ -1,4 +1,4 @@
-package c3h8.util;
+package com.github.vfro;
 
 import java.lang.ref.WeakReference;
 import java.lang.reflect.Method;
@@ -92,8 +92,8 @@ public final class Sandbox<Value extends Cloneable> implements Cloneable {
     public Value pull(Monitor<Value> monitor) {
         monitor.readAccess(
                 value -> {
-                    Sandbox.this.set(Sandbox.cloneValue(value));
-                    Sandbox.this.check = new WeakReference<>(value);
+                    this.set(cloneValue(value));
+                    this.check = new WeakReference<>(value);
                 });
 
         return this.value;
@@ -102,12 +102,12 @@ public final class Sandbox<Value extends Cloneable> implements Cloneable {
     private boolean push(Monitor<Value> monitor, final boolean force, final boolean byReference) {
         monitor.writeAccess(
                 value -> {
-                    Sandbox.this.pushResult = false;
+                    this.pushResult = false;
                     if (force
-                    || (byReference && Sandbox.this.check != null && Sandbox.this.check.get() == value)
-                    || (!byReference && Sandbox.this.check != null && Sandbox.this.check.get().equals(value))) {
-                        Sandbox.this.pushResult = true;
-                        return Sandbox.this.value;
+                    || byReference && this.check != null && this.check.get() == value
+                    || !byReference && this.check != null && this.check.get().equals(value)) {
+                        this.pushResult = true;
+                        return this.value;
                     }
                     return value;
                 });

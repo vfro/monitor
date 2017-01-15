@@ -3,4 +3,4 @@
  *
  * @author Volodymyr Frolov
  */
-package c3h8.util;
+package com.github.vfro;
