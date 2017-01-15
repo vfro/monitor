@@ -12,8 +12,8 @@ Monitor can be used for concurrent access to its value. It also provides an abil
 
  // ...
  while(true) {
-    // Wait until some string is added to a queue
-    // and printit into System.out
+    // Wait until some string is added to the queue
+    // and print it into System.out
     outputQueue.writeAccess(
        queue -> {
              System.out.println(queue.pull());

@@ -19,8 +19,8 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  *
  * // ...
  * while(true) {
- *    // Wait until some string is added to a queue
- *    // and printit into System.out
+ *    // Wait until some string is added to the queue
+ *    // and print it into System.out
  *    outputQueue.writeAccess(
  *       queue -&gt; {
  *             System.out.println(queue.pull());
