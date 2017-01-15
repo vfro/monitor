@@ -3,109 +3,196 @@ package c3h8.util;
 import java.lang.ref.WeakReference;
 import java.lang.reflect.Method;
 
+/**
+ * Sandbox can be used to access a copy of value controlled by {@link Monitor}.
+ *
+ * @author Volodymyr Frolov
+ * @param <Value> value of the monitor.
+ */
+@SuppressWarnings("LocalVariableHidesMemberVariable")
 public final class Sandbox<Value extends Cloneable> implements Cloneable {
 
     private WeakReference<Value> check;
     private Value value;
     private boolean pushResult;
 
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings({"unchecked", "UseSpecificCatch"})
     private static <Value> Value cloneValue(Value value) {
         Value result = null;
         try {
             Method clone = value.getClass().getDeclaredMethod("clone");
-            result = (Value)clone.invoke(value);
-        } catch(Throwable e) {
+            result = (Value) clone.invoke(value);
+        } catch (Exception e) {
             throw new IllegalArgumentException(
-                "Cannot clone instance of " + value.getClass().getName(), e
+                    "Cannot clone instance of " + value.getClass().getName(), e
             );
         }
         return result;
     }
 
+    /**
+     * Create new instance of Sandbox with null as its value.
+     */
     public Sandbox() {
         this.value = null;
         this.check = null;
         this.pushResult = false;
     }
 
+    /**
+     * Create new instance of Sandbox and assign particular value to it.
+     *
+     * @param value initial value of the sandbox.
+     */
     public Sandbox(Value value) {
         this.value = value;
         this.check = null;
     }
 
+    /**
+     * Create new instance of Sandbox and {@link #pull(c3h8.util.Monitor)} its
+     * value from monitor.
+     *
+     * @param monitor initial value is pulled from the monitor.
+     */
     public Sandbox(Monitor<Value> monitor) {
         super();
         this.pull(monitor);
     }
 
+    /**
+     * Access value help by Sandbox. If the value was previously pulled from
+     * Monitor, then it is a copy of the value contained in {@link Monitor}. The
+     * copy can be changed without locking the monitor.
+     *
+     * @return value held by Sandbox.
+     */
     public Value get() {
         return this.value;
     }
 
+    /**
+     * Assign value to Sandbox.
+     *
+     * @param value new value for the sandbox.
+     */
     public void set(Value value) {
         this.value = value;
     }
 
+    /**
+     * Obtain value from the monitor, assign its clone to sandbox and return the
+     * clone of obtained value. Read access is used to obtain the value. The
+     * value is cloned before assigning it to sandbox, so it could be changed
+     * without locking the monitor.
+     *
+     * @param monitor the monitor to take value from.
+     * @return the clone of value obtained from monitor.
+     */
     public Value pull(Monitor<Value> monitor) {
         monitor.readAccess(
-            value -> {
-                Sandbox.this.set(Sandbox.cloneValue(value));
-                Sandbox.this.check = new WeakReference<Value>(value);
-            });
+                value -> {
+                    Sandbox.this.set(Sandbox.cloneValue(value));
+                    Sandbox.this.check = new WeakReference<>(value);
+                });
 
         return this.value;
     }
 
-    public boolean push(Monitor<Value> monitor) {
-        return this.push(monitor, false);
-    }
-
-    public boolean push(Monitor<Value> monitor, final boolean force) {
+    private boolean push(Monitor<Value> monitor, final boolean force, final boolean byReference) {
         monitor.writeAccess(
-            value -> {
-                Sandbox.this.pushResult = false;
-                if (force ||
-                    (Sandbox.this.check != null && Sandbox.this.check.get() == value)) {
-                    Sandbox.this.pushResult = true;
-                    return Sandbox.this.value;
-                }
-                return value;
-            });
+                value -> {
+                    Sandbox.this.pushResult = false;
+                    if (force
+                    || (byReference && Sandbox.this.check != null && Sandbox.this.check.get() == value)
+                    || (!byReference && Sandbox.this.check != null && Sandbox.this.check.get().equals(value))) {
+                        Sandbox.this.pushResult = true;
+                        return Sandbox.this.value;
+                    }
+                    return value;
+                });
 
         if (this.pushResult) {
-            check = new WeakReference<Value>(value);
+            check = new WeakReference<>(value);
             return true;
         }
         return false;
     }
 
+    /**
+     * Unconditionally set value of the sandbox to monitor.
+     * 
+     * @param monitor the monitor to set the value to.
+     */
+    void push(Monitor<Value> monitor) {
+        this.push(monitor, true, false);
+    }
+
+    /**
+     * Compare monitor`s value with the sandbox value by reference and set it to monitor
+     * if the reference is the same.
+     * 
+     * @param monitor the monitor to set the value to.
+     * @return true if comparison was successful and value was set to monitor, or false otherwise.
+     */
+    public boolean casByReference(Monitor<Value> monitor) {
+        return this.push(monitor, false, true);
+    }
+
+    /**
+     * Compare monitor`s value with the sandbox value by value and set it to monitor
+     * if the value is the same.
+     * 
+     * @param monitor the monitor to set the value to.
+     * @return true if comparison was successful and value was set to monitor, or false otherwise.
+     */
+    public boolean casByValue(Monitor<Value> monitor) {
+        return this.push(monitor, false, false);
+    }
+
+    /**
+     * Convert sandbox value to string.
+     * 
+     * @return String representation of sandbox value.
+     */
     @Override
     public String toString() {
         return this.value.toString();
     }
 
+    /**
+     * Check if sandbox value is equal to other`s sandbox value.
+     * @param same the other sandbox.
+     * @return true if the other`s sandbox value is the same.
+     */
     @Override
     @SuppressWarnings("unchecked")
-    public boolean equals(Object obj) {
-        if (obj == null
-            || !this.getClass().equals(obj.getClass())
-           ) {
+    public boolean equals(Object same) {
+        if (same == null
+                || !this.getClass().equals(same.getClass())) {
             return false;
         }
-        Sandbox<Value> same = (Sandbox<Value>)obj;
-        return this.value.equals(same.value);
+        return this.value.equals(((Sandbox<Value>)same).value);
     }
 
+    /**
+     * Return hash code of sandbox value.
+     * @return hash code of sandbox value.
+     */
     @Override
     public int hashCode() {
         return this.value.hashCode();
     }
 
+    /**
+     * Clone Sandbox.
+     * @return New instance of Sandbox identical to this.
+     */
     @Override
+    @SuppressWarnings("CloneDoesntCallSuperClone")
     public Sandbox<Value> clone() {
-        Sandbox<Value> same =
-            new Sandbox<Value>(Sandbox.cloneValue(this.value));
+        Sandbox<Value> same
+                = new Sandbox<>(Sandbox.cloneValue(this.value));
         same.check = this.check;
         return same;
     }

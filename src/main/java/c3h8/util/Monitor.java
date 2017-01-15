@@ -11,8 +11,8 @@ import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
- * Monitor can be used for concurrent access to a value and ability to
- * wait until the value becomes into some certain state.<p>
+ * Monitor can be used for concurrent access to a value. It also provides an ability to wait
+ * until the value becomes into some certain state.
  * <pre>
  * Monitor&lt;Queue&lt;String&gt;&gt; outputQueue =
  *    new Monitor&lt;Queue&lt;String&gt;&gt;(new LinkedList&lt;String&gt;());
@@ -41,17 +41,20 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  *       }
  * );
  * </pre>
+ *
  * @param <Value> value of the monitor.
  */
+@SuppressWarnings("LocalVariableHidesMemberVariable")
 public class Monitor<Value> {
 
     private Value value;
-    private Lock readLock;
-    private Lock writeLock;
-    private Condition condition;
+    private final Lock readLock;
+    private final Lock writeLock;
+    private final Condition condition;
 
     /**
      * Get access to monitored value without any synchronization.
+     * @return the monitored value.
      */
     protected Value getValue() {
         return this.value;
@@ -59,6 +62,7 @@ public class Monitor<Value> {
 
     /**
      * Modify monitored value directly without any synchronization.
+     * @param value the new monitored value.
      */
     protected void setValue(Value value) {
         this.value = value;
@@ -66,6 +70,7 @@ public class Monitor<Value> {
 
     /**
      * Get a lock which is used for read access.
+     * @return read access lock.
      */
     protected final Lock getReadLock() {
         return this.readLock;
@@ -73,24 +78,26 @@ public class Monitor<Value> {
 
     /**
      * Get lock which is used for write access.
+     * @return write access lock.
      */
     protected final Lock getWriteLock() {
         return this.writeLock;
     }
 
     /**
-     * Get a condition variable which is signalled after state of
-     * the monitored value becomes changed.
+     * Get a condition variable which is signaled after state of the monitored
+     * value becomes changed.
+     * @return condition variable.
      */
     protected final Condition getCondition() {
         return this.condition;
     }
 
     private static class TimeTracker {
-        private long origin;
 
-        private long time;
-        private TimeUnit unit;
+        private final long origin;
+        private final long time;
+        private final TimeUnit unit;
 
         TimeTracker(long time, TimeUnit unit) {
             this.time = time;
@@ -104,13 +111,13 @@ public class Monitor<Value> {
 
         long timeLeft() {
             long timer = systemTimer(this.unit);
-            return this.origin -
-                timer + toSystemTimerUnits(this.time, this.unit);
+            return this.origin
+                    - timer + toSystemTimerUnits(this.time, this.unit);
         }
 
         static TimeUnit systemUnit(TimeUnit unit) {
             if (unit == TimeUnit.NANOSECONDS
-                || unit == TimeUnit.MICROSECONDS) {
+                    || unit == TimeUnit.MICROSECONDS) {
                 return TimeUnit.NANOSECONDS;
             }
             return TimeUnit.MILLISECONDS;
@@ -118,7 +125,7 @@ public class Monitor<Value> {
 
         private static long systemTimer(TimeUnit unit) {
             if (unit == TimeUnit.NANOSECONDS
-                || unit == TimeUnit.MICROSECONDS) {
+                    || unit == TimeUnit.MICROSECONDS) {
                 return System.nanoTime();
             }
             return System.currentTimeMillis();
@@ -132,7 +139,7 @@ public class Monitor<Value> {
     private boolean accessByTime(
             Function<Value, Value> function, Predicate<Value> predicate,
             long time, TimeUnit unit, boolean isWrite
-        ) throws InterruptedException {
+    ) throws InterruptedException {
         TimeTracker timeTracker = new TimeTracker(time, unit);
         Lock aquiredLock = null;
 
@@ -148,7 +155,7 @@ public class Monitor<Value> {
                 while (!this.condition.await(
                         timeTracker.timeLeft(),
                         TimeTracker.systemUnit(unit)
-                    )) {
+                )) {
                     if (!timeTracker.hasMoreTime()) {
                         return false;
                     }
@@ -174,7 +181,7 @@ public class Monitor<Value> {
 
     private void accessByPredicate(
             Function<Value, Value> function, Predicate<Value> predicate, boolean isWrite
-        ) throws InterruptedException {
+    ) throws InterruptedException {
         Lock lockedObject = null;
         try {
             Lock tryLock = this.getWriteLock();
@@ -203,7 +210,8 @@ public class Monitor<Value> {
 
     /**
      * Create new instance of Monitor initialized by specified value.
-     * @param value initial value of a monitor.
+     *
+     * @param value initial value of the monitor.
      */
     public Monitor(Value value) {
         this.value = value;
@@ -234,8 +242,8 @@ public class Monitor<Value> {
     /**
      * Access monitored value for read (in shared mode).
      *
-     * @param consumer to obtain read access.
-     * The consumer must not change internal state of monitored value.
+     * @param consumer to obtain read access. The consumer must not change
+     * internal state of monitored value.
      */
     public final void readAccess(Consumer<Value> consumer) {
         Lock lockedObject = this.getReadLock();
@@ -248,59 +256,62 @@ public class Monitor<Value> {
     }
 
     /**
-     * Causes current thread to wait until monitor becomes to some certain
-     * state and access monitored value for read (in shared mode).
+     * Causes current thread to wait until monitor becomes to some certain state
+     * and access monitored value for read (in shared mode).
      *
      * Predicate expression must not change a state of monitored value.
-     * @param consumer to obtain read access.
-     * Consumer must not change internal state of monitored value.
+     *
+     * @param consumer to obtain read access. Consumer must not change internal
+     * state of monitored value.
      * @param predicate to define a state of monitored value.
      * @throws InterruptedException if the current thread is interrupted.
      */
     public final void readAccess(
             Consumer<Value> consumer, Predicate<Value> predicate
-        ) throws InterruptedException {
+    ) throws InterruptedException {
         accessByPredicate(
-            value -> {
-                consumer.accept(value);
-                return value;
-            },
-            predicate, false);
+                value -> {
+                    consumer.accept(value);
+                    return value;
+                },
+                predicate, false);
     }
 
     /**
-     * Causes current thread to wait until monitor becomes to some certain
-     * state and access monitored value for read (in shared mode).
+     * Causes current thread to wait until monitor becomes to some certain state
+     * and access monitored value for read (in shared mode).
      *
      * Predicate instance must not change a state of monitored value.
-     * @param consumer to obtain read access.
-     * The instance must not change internal state of monitored value.
+     *
+     * @param consumer to obtain read access. The instance must not change
+     * internal state of monitored value.
      * @param predicate to define a state of monitored value.
      * @param time the maximum time to wait.
      * @param unit the time unit of the time argument.
      * @return {@code true} if the monitored value has been accessed or
-     * {@code false} if the waiting time detectably elapsed before return
-     * from the method.
+     * {@code false} if the waiting time detectably elapsed before return from
+     * the method.
      * @throws InterruptedException if the current thread is interrupted.
      */
     public final boolean readAccess(
             Consumer<Value> consumer, Predicate<Value> predicate,
             long time, TimeUnit unit
-        ) throws InterruptedException {
+    ) throws InterruptedException {
         return this.accessByTime(
-            value -> {
-                consumer.accept(value);
-                return value;
-            },
-            predicate, time, unit, false);
+                value -> {
+                    consumer.accept(value);
+                    return value;
+                },
+                predicate, time, unit, false);
     }
 
     /**
      * Access monitored value for write (in exclusive mode).
      *
      * Return value of function becomes new value of monitor.
-     * @param function instance change monitored value.
-     * The function may change internal state of monitored value.
+     *
+     * @param function instance change monitored value. The function may change
+     * internal state of monitored value.
      */
     public final void writeAccess(Function<Value, Value> function) {
         Lock lockedObject = this.getWriteLock();
@@ -314,40 +325,42 @@ public class Monitor<Value> {
     }
 
     /**
-     * Causes current thread to wait until monitor becomes to some certain
-     * state and access monitored value for write (in exclusive mode).
+     * Causes current thread to wait until monitor becomes to some certain state
+     * and access monitored value for write (in exclusive mode).
      *
      * Return value of function becomes new value of monitor.
-     * @param function to obtain write access.
-     * The function may change internal state of monitored value.
+     *
+     * @param function to obtain write access. The function may change internal
+     * state of monitored value.
      * @param predicate to define a state of monitored value.
      * @throws InterruptedException if the current thread is interrupted.
      */
     public final void writeAccess(
             Function<Value, Value> function, Predicate<Value> predicate
-        ) throws InterruptedException {
+    ) throws InterruptedException {
         accessByPredicate(function, predicate, true);
     }
 
     /**
-     * Causes current thread to wait until monitor becomes to some certain
-     * state and access monitored value for write (in exclusive mode).
+     * Causes current thread to wait until monitor becomes to some certain state
+     * and access monitored value for write (in exclusive mode).
      *
      * Return value of function becomes new value of monitor.
-     * @param function to obtain write access.
-     * The function may change internal state of monitored value.
+     *
+     * @param function to obtain write access. The function may change internal
+     * state of monitored value.
      * @param predicate to define a state of monitored value.
      * @param time the maximum time to wait.
      * @param unit the time unit of the time argument.
      * @return {@code true} if the monitored value has been accessed or
-     * {@code false} if the waiting time detectably elapsed before return
-     * from the method.
+     * {@code false} if the waiting time detectably elapsed before return from
+     * the method.
      * @throws InterruptedException if the current thread is interrupted.
      */
     public final boolean writeAccess(
             Function<Value, Value> function, Predicate<Value> predicate,
             long time, TimeUnit unit
-        ) throws InterruptedException {
+    ) throws InterruptedException {
         return this.accessByTime(function, predicate, time, unit, true);
     }
 

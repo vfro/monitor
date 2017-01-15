@@ -5,7 +5,7 @@
     <groupId>c3h8.util</groupId>
     <artifactId>propane</artifactId>
     <packaging>jar</packaging>
-    <version>2.0</version>
+    <version>2.1</version>
     <name>Propane</name>
     <description>Propane project provides implementation of a Monitor Concurrency pattern.</description>
     <url>http://vfro.bitbucket.org/c3h8/index.html</url>
@@ -39,7 +39,7 @@
                 <role>architect</role>
                 <role>developer</role>
             </roles>
-            <timezone>+2</timezone>
+            <timezone>-5</timezone>
         </developer>
     </developers>
 
@@ -80,13 +80,13 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-assembly-plugin</artifactId>
-                <version>2.4</version>
+                <version>3.0.0</version>
             </plugin>
 
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
-                <version>2.17</version>
+                <version>2.19.1</version>
                 <configuration>
                     <argLine>-XX:-UseSplitVerifier</argLine>
                 </configuration>
@@ -95,24 +95,24 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-resources-plugin</artifactId>
-                <version>2.6</version>
+                <version>3.0.2</version>
             </plugin>
 
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
-                <version>2.4</version>
+                <version>3.0.2</version>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-site-plugin</artifactId>
-                <version>3.3</version>
+                <version>3.6</version>
                 <configuration>
                     <reportPlugins>
                         <plugin>
                             <groupId>org.apache.maven.plugins</groupId>
                             <artifactId>maven-javadoc-plugin</artifactId>
-                            <version>2.9.1</version>
+                            <version>2.10.4</version>
                             <reportSets>
                                 <reportSet>
                                     <reports>
@@ -124,7 +124,7 @@
                         <plugin>
                             <groupId>org.apache.maven.plugins</groupId>
                             <artifactId>maven-project-info-reports-plugin</artifactId>
-                            <version>2.7</version>
+                            <version>2.9</version>
                             <reportSets>
                                 <reportSet>
                                     <reports>
@@ -142,7 +142,7 @@
                         <plugin>
                             <groupId>org.apache.maven.plugins</groupId>
                             <artifactId>maven-surefire-report-plugin</artifactId>
-                            <version>2.17</version>
+                            <version>2.19.1</version>
                             <reportSets>
                                 <reportSet>
                                     <reports>
@@ -154,9 +154,9 @@
                         <plugin>
                             <groupId>org.apache.maven.plugins</groupId>
                             <artifactId>maven-checkstyle-plugin</artifactId>
-                            <version>2.12.1</version>
+                            <version>2.17</version>
                             <configuration>
-                                <configLocation>config/sun_checks.xml</configLocation>
+                                <configLocation>sun_checks.xml</configLocation>
                             </configuration>
                             <reportSets>
                                 <reportSet>
@@ -169,7 +169,7 @@
                         <plugin>
                             <groupId>org.apache.maven.plugins</groupId>
                             <artifactId>maven-pmd-plugin</artifactId>
-                            <version>3.1</version>
+                            <version>3.7</version>
                             <configuration>
                                 <linkXRef>false</linkXRef>
                                 <sourceEncoding>${project.build.sourceEncoding}</sourceEncoding>

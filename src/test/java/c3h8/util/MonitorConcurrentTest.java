@@ -9,7 +9,6 @@ import java.util.concurrent.CyclicBarrier;
 
 import org.testng.annotations.Test;
 
-import static org.testng.Assert.fail;
 import static org.testng.Assert.assertEquals;
 
 public class MonitorConcurrentTest {
@@ -19,50 +18,40 @@ public class MonitorConcurrentTest {
     @Test
     public void monitorConcurentReadWriteAccess()
         throws InterruptedException, BrokenBarrierException {
-        final List<Object> errors = new LinkedList<Object>();
-        final Monitor<String> monitor = new Monitor<String>("");
+        final List<Object> errors = new LinkedList<>();
+        final Monitor<String> monitor = new Monitor<>("");
         final CyclicBarrier barrier = new CyclicBarrier(3);
 
-        Thread reader = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    barrier.await();
-                    monitor.readAccess(
+        Thread reader = new Thread(() -> {
+            try {
+                barrier.await();
+                monitor.readAccess(
                         value -> {
-                                if (!value.equals("reader-await")) {
-                                    errors.add("monitor reader predicate doesn't work.");
-                                }
-                            },
+                            if (!value.equals("reader-await")) {
+                                errors.add("monitor reader predicate doesn't work.");
+                            }
+                        },
                         value -> value.equals("reader-await")
-                    );
-                } catch(InterruptedException e) {
-                    errors.add(e);
-                } catch(BrokenBarrierException e) {
-                    errors.add(e);
-                }
+                );
+            } catch(InterruptedException | BrokenBarrierException e) {
+                errors.add(e);
             }
         }, "monitorConcurentReadWriteAccess.reader");
 
-        Thread writer = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    barrier.await();
-                    monitor.writeAccess(
+        Thread writer = new Thread(() -> {
+            try {
+                barrier.await();
+                monitor.writeAccess(
                         value -> {
-                                if (!value.equals("writer-await")) {
-                                    errors.add("monitor write predicate doesn't work.");
-                                }
-                                return "reader-await";
-                            },
+                            if (!value.equals("writer-await")) {
+                                errors.add("monitor write predicate doesn't work.");
+                            }
+                            return "reader-await";
+                        },
                         value -> value.equals("writer-await")
-                    );
-                } catch(InterruptedException e) {
-                    errors.add(e);
-                } catch(BrokenBarrierException e) {
-                    errors.add(e);
-                }
+                );
+            } catch(InterruptedException | BrokenBarrierException e) {
+                errors.add(e);
             }
         }, "monitorConcurentReadWriteAccess.writer");
 
@@ -83,9 +72,9 @@ public class MonitorConcurrentTest {
 
     @Test
     public void calculateSum() throws InterruptedException, BrokenBarrierException {
-        final List<Object> errors = new LinkedList<Object>();
+        final List<Object> errors = new LinkedList<>();
 
-        final Monitor<Stack<Integer>> sum = new Monitor<Stack<Integer>>(new Stack<Integer>());
+        final Monitor<Stack<Integer>> sum = new Monitor<>(new Stack<>());
         int result = 0;
         for (int i = 0; i < 1000; i++) {
             result += i;
@@ -99,33 +88,30 @@ public class MonitorConcurrentTest {
         final int finalResult = result;
 
         final CyclicBarrier barrier = new CyclicBarrier(11);
-        List<Thread> workers = new LinkedList<Thread>();
+        List<Thread> workers = new LinkedList<>();
         for (int i = 0; i < 10; i++) {
             Thread worker = 
                 new Thread(
-                    new Runnable() {
-                        @Override
-                        public void run() {
-                            try {
-                                barrier.await();
-                                while(true) {
-                                    sum.writeAccess(
-                                            stackSum -> {
-                                                int value1 = stackSum.pop();
-                                                int value2 = stackSum.pop();
-                                                stackSum.push(value1 + value2);
-                                                return stackSum;
-                                            },
-                                            stackSum -> stackSum.size() >= 2
-                                        );
-                                }
-                            } catch(InterruptedException e) {
-                                // It is okay. Worker is interrupted.
-                            } catch(BrokenBarrierException e) {
-                                errors.add(e);
+                    () -> {
+                        try {
+                            barrier.await();
+                            while(true) {
+                                sum.writeAccess(
+                                        stackSum -> {
+                                            int value1 = stackSum.pop();
+                                            int value2 = stackSum.pop();
+                                            stackSum.push(value1 + value2);
+                                            return stackSum;
+                                        },
+                                        stackSum -> stackSum.size() >= 2
+                                );
                             }
+                        } catch(InterruptedException e) {
+                            // It is okay. Worker is interrupted.
+                        } catch(BrokenBarrierException e) {
+                            errors.add(e);
                         }
-            }, "calculateSum.worker " + Integer.valueOf(i).toString());
+            }, "calculateSum.worker " + Integer.toString(i));
             worker.start();
             workers.add(worker);
         }
@@ -139,8 +125,8 @@ public class MonitorConcurrentTest {
             );
 
         assertEquals(errors.size(), 0, "Test monitor has no errors during calculating sum.");
-        for(Thread worker : workers) {
+        workers.stream().forEach((worker) -> {
             worker.interrupt();
-        }
+        });
     }
 }

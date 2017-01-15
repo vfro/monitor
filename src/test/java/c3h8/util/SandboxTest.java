@@ -2,7 +2,6 @@ package c3h8.util;
 
 import org.testng.annotations.Test;
 
-import static org.testng.Assert.fail;
 import static org.testng.Assert.assertTrue;
 import static org.testng.Assert.assertFalse;
 import static org.testng.Assert.assertEquals;
@@ -11,7 +10,7 @@ import static org.testng.Assert.assertNotEquals;
 public class SandboxTest {
 
     private static final class CloneableString implements Cloneable {
-        private String string;
+        private final String string;
         private boolean cloneInvoked = false;
 
         public CloneableString(String string) {
@@ -27,6 +26,7 @@ public class SandboxTest {
         }
 
         @Override
+        @SuppressWarnings("CloneDoesntCallSuperClone")
         public CloneableString clone() {
             this.cloneInvoked = true;
             return new CloneableString(this.string);
@@ -56,14 +56,14 @@ public class SandboxTest {
     @Test
     public void sandboxConstructorGet() {
         CloneableString string = new CloneableString("string");
-        Sandbox<CloneableString> sandbox = new Sandbox<CloneableString>(string);
+        Sandbox<CloneableString> sandbox = new Sandbox<>(string);
         assertTrue(sandbox.get() == string, "Sandbox.get() returns the same value as passed to constructor.");
     }
 
     @Test
     public void sandboxSetGet() {
         CloneableString string = new CloneableString("string");
-        Sandbox<CloneableString> sandbox = new Sandbox<CloneableString>();
+        Sandbox<CloneableString> sandbox = new Sandbox<>();
         sandbox.set(string);
         assertTrue(sandbox.get() == string, "Sandbox.get() returns the same value as passed to constructor.");
         assertFalse(string.isCloneInvoked(), "Sandbox.set() does not invoke clone method for the argument.");
@@ -72,8 +72,8 @@ public class SandboxTest {
     @Test
     public void sandboxPull() {
         CloneableString string = new CloneableString("string");
-        Monitor<CloneableString> monitor = new Monitor<CloneableString>(string);
-        Sandbox<CloneableString> sandbox = new Sandbox<CloneableString>();
+        Monitor<CloneableString> monitor = new Monitor<>(string);
+        Sandbox<CloneableString> sandbox = new Sandbox<>();
 
         CloneableString pullString = sandbox.pull(monitor);
 
@@ -86,86 +86,109 @@ public class SandboxTest {
     @Test
     public void sandboxPush() {
         CloneableString originalString = new CloneableString("original string");
+        CloneableString otherString = new CloneableString("other string");
         CloneableString pushString = new CloneableString("push string");
 
-        Monitor<CloneableString> monitor = new Monitor<CloneableString>(originalString);
-        Sandbox<CloneableString> sandboxPush = new Sandbox<CloneableString>();
-        Sandbox<CloneableString> sandboxPull = new Sandbox<CloneableString>();
+        Monitor<CloneableString> monitor = new Monitor<>(originalString);
+        Sandbox<CloneableString> sandboxPush = new Sandbox<>();
+        Sandbox<CloneableString> sandboxPull = new Sandbox<>();
         
         sandboxPush.pull(monitor);
-        sandboxPush.set(pushString);
-        boolean isPushed = sandboxPush.push(monitor);
-        sandboxPull.pull(monitor);
-
-        assertTrue(isPushed, "Sandbox.push() completed successfully.");
-        assertEquals(sandboxPull.get(), pushString, "Sandbox.push() puts its value to monitor.");
-    }
-
-    @Test
-    public void sandboxUnsuccessfulPush() {
-        CloneableString originalString = new CloneableString("original string");
-        CloneableString pushString = new CloneableString("push string");
-        CloneableString unsuccessfulPushString = new CloneableString("unsuccessful push string");
-
-        Monitor<CloneableString> monitor = new Monitor<CloneableString>(originalString);
-        Sandbox<CloneableString> sandboxSuccessfulPush = new Sandbox<CloneableString>();
-        Sandbox<CloneableString> sandboxUnsuccessfulPush = new Sandbox<CloneableString>();
-        
-        sandboxSuccessfulPush.pull(monitor);
-        sandboxUnsuccessfulPush.pull(monitor);
-
-        sandboxSuccessfulPush.set(pushString);
-        sandboxSuccessfulPush.push(monitor);
-
-        sandboxUnsuccessfulPush.set(unsuccessfulPushString);
-        boolean isPushed = sandboxUnsuccessfulPush.push(monitor);
-
-        assertFalse(isPushed, "Sandbox.push() completed unsuccessfully for updated monitor.");
-        assertEquals(sandboxUnsuccessfulPush.get(), unsuccessfulPushString, "Sandbox value was not changed after unsuccessful push.");
-    }
-
-    @Test
-    public void sandboxForcePush() {
-        CloneableString originalString = new CloneableString("original string");
-        CloneableString pushString = new CloneableString("push string");
-        CloneableString forcePushString = new CloneableString("force push string");
-
-        Monitor<CloneableString> monitor = new Monitor<CloneableString>(originalString);
-        Sandbox<CloneableString> sandboxPush = new Sandbox<CloneableString>();
-        Sandbox<CloneableString> sandboxForcePush = new Sandbox<CloneableString>();
-        
-        sandboxPush.pull(monitor);
-        sandboxForcePush.pull(monitor);
-
+        monitor.set(otherString);
         sandboxPush.set(pushString);
         sandboxPush.push(monitor);
 
-        sandboxForcePush.set(forcePushString);
-        boolean isPushed = sandboxForcePush.push(monitor, true);
+        sandboxPull.pull(monitor);
+        assertEquals(sandboxPull.get(), pushString, "Sandbox.push() puts its value to monitor unconditionaly.");
+    }
 
-        Sandbox<CloneableString> sandboxCheckPush = new Sandbox<CloneableString>();
-        sandboxCheckPush.pull(monitor);
+    @Test
+    @SuppressWarnings("RedundantStringConstructorCall")
+    public void sandboxCasByValue() {
+        CloneableString originalString = new CloneableString(new String("original string"));
+        CloneableString theSameString = new CloneableString(new String("original string"));
+        CloneableString successfulCasString = new CloneableString("successful push string");
+        CloneableString unsuccessfulCasString = new CloneableString("unsuccessful push string");
 
-        assertTrue(isPushed, "Sandbox.push() completed successfully for forced push.");
-        assertEquals(sandboxCheckPush.get(), forcePushString, "Sandbox value was pushed to monitor on forced push.");
+        Monitor<CloneableString> monitor = new Monitor<>(originalString);
+        Sandbox<CloneableString> sandboxSuccessfulCas = new Sandbox<>();
+        Sandbox<CloneableString> sandboxUnsuccessfulCas = new Sandbox<>();
+
+        Sandbox<CloneableString> sandboxCheck = new Sandbox<>();
+
+        sandboxSuccessfulCas.pull(monitor);
+        sandboxSuccessfulCas.set(successfulCasString);
+
+        sandboxUnsuccessfulCas.pull(monitor);
+        sandboxUnsuccessfulCas.set(unsuccessfulCasString);
+        monitor.set(theSameString);
+
+        // Monitor contains identical string
+        boolean successful = sandboxSuccessfulCas.casByValue(monitor);
+        sandboxCheck.pull(monitor);
+
+        assertTrue(successful, "Sandbox.casByValue() completed successfully for identical string.");
+        assertEquals(sandboxCheck.get(), successfulCasString, "Sandbox.casByValue() puts its value to monitor.");
+
+        // Monitor contains identical string
+        boolean unsuccessful = sandboxUnsuccessfulCas.casByValue(monitor);
+        sandboxCheck.pull(monitor);
+
+        assertFalse(unsuccessful, "Sandbox.casByValue() completed unsuccessfully for non-identical string.");
+    }
+
+    @Test
+    @SuppressWarnings("RedundantStringConstructorCall")
+    public void sandboxCasByReference() {
+        CloneableString originalString = new CloneableString("original string");
+        CloneableString theSameString = new CloneableString(new String("original string"));
+        CloneableString successfulCasString = new CloneableString("successful push string");
+        CloneableString unsuccessfulCasString = new CloneableString("unsuccessful push string");
+
+        Monitor<CloneableString> monitor = new Monitor<>(originalString);
+        Sandbox<CloneableString> sandboxSuccessfulCas = new Sandbox<>();
+        Sandbox<CloneableString> sandboxUnsuccessfulCas = new Sandbox<>();
+
+        Sandbox<CloneableString> sandboxCheck = new Sandbox<>();
+
+        sandboxSuccessfulCas.pull(monitor);
+        sandboxSuccessfulCas.set(successfulCasString);
+
+        sandboxUnsuccessfulCas.pull(monitor);
+        sandboxUnsuccessfulCas.set(unsuccessfulCasString);
+
+        // Monitor contains identical string
+        boolean successful = sandboxSuccessfulCas.casByReference(monitor);
+        sandboxCheck.pull(monitor);
+
+        assertTrue(successful, "Sandbox.casByReference() completed successfully for identical string.");
+        assertEquals(sandboxCheck.get(), successfulCasString, "Sandbox.casByReference() puts its value to monitor.");
+
+        monitor.set(theSameString);
+
+        // Monitor contains identical string
+        boolean unsuccessful = sandboxUnsuccessfulCas.casByReference(monitor);
+        sandboxCheck.pull(monitor);
+
+        assertFalse(unsuccessful, "Sandbox.casByReference() completed unsuccessfully for non-identical string.");
     }
 
     @Test
     public void sandboxToString() {
         CloneableString string = new CloneableString("string");
-        Sandbox<CloneableString> sandbox = new Sandbox<CloneableString>(string);
+        Sandbox<CloneableString> sandbox = new Sandbox<>(string);
         assertEquals(sandbox.toString(), string.toString(), "Sandbox.toString() equals to Sandbox.get().toString().");
     }
 
     @Test
     public void sandboxEquals() {
         CloneableString stringOne = new CloneableString("string");
-        Monitor<CloneableString> monitorOne = new Monitor<CloneableString>(stringOne);
-        Sandbox<CloneableString> sandboxOne = new Sandbox<CloneableString>(monitorOne);
+        Monitor<CloneableString> monitorOne = new Monitor<>(stringOne);
+        Sandbox<CloneableString> sandboxOne = new Sandbox<>(monitorOne);
 
         CloneableString stringOneAndAHalf = new CloneableString("string one and a half");
-        Monitor<CloneableString> monitorOneAndAHalf = new Monitor<CloneableString>(stringOneAndAHalf);
-        Sandbox<CloneableString> sandboxTwo = new Sandbox<CloneableString>(monitorOneAndAHalf);
+        Monitor<CloneableString> monitorOneAndAHalf = new Monitor<>(stringOneAndAHalf);
+        Sandbox<CloneableString> sandboxTwo = new Sandbox<>(monitorOneAndAHalf);
 
         CloneableString stringTwo = new CloneableString("string");
         sandboxTwo.set(stringTwo);
@@ -176,7 +199,7 @@ public class SandboxTest {
     @Test
     public void sandboxNotEquals() {
         CloneableString string = new CloneableString("string");
-        Sandbox<CloneableString> sandbox = new Sandbox<CloneableString>(string);
+        Sandbox<CloneableString> sandbox = new Sandbox<>(string);
 
         assertNotEquals(sandbox, null, "Sandbox.equals() doesn't equals to null.");
         assertNotEquals(sandbox, string, "Sandbox.equals() doesn't equals to value.");
@@ -185,14 +208,14 @@ public class SandboxTest {
     @Test
     public void sandboxHashCode() {
         CloneableString string = new CloneableString("string");
-        Sandbox<CloneableString> sandbox = new Sandbox<CloneableString>(string);
+        Sandbox<CloneableString> sandbox = new Sandbox<>(string);
         assertEquals(sandbox.hashCode(), string.hashCode(), "Sandbox.hashCode() equals to Sandbox.get().hashCode().");
     }
 
     @Test
     public void sandboxClone() {
         CloneableString string = new CloneableString("string");
-        Sandbox<CloneableString> sandbox = new Sandbox<CloneableString>(string);
+        Sandbox<CloneableString> sandbox = new Sandbox<>(string);
         Sandbox<CloneableString> clone = sandbox.clone();
         assertEquals(clone, sandbox, "Sandbox.clone() equals to itself.");
     }

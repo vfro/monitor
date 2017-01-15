@@ -2,8 +2,6 @@ package c3h8.util;
 
 import java.util.concurrent.TimeUnit;
 
-import java.util.logging.Logger;
-
 import org.testng.annotations.Test;
 
 import static org.testng.Assert.fail;
@@ -11,18 +9,16 @@ import static org.testng.Assert.assertTrue;
 import static org.testng.Assert.assertFalse;
 
 public class MonitorTimePrecisionTest {
-    private final static Logger log = Logger.getLogger(MonitorTimePrecisionTest.class.getName());
-
-    private final static TimeUnit[] units = {
+    private final static TimeUnit[] UNITS = {
         TimeUnit.SECONDS, TimeUnit.MILLISECONDS, TimeUnit.MICROSECONDS, TimeUnit.NANOSECONDS
     };
 
-    private final static long[] repeatCounts = {
-        3, 100, 100, 1000
+    private final static long[] REPEAT_COUNTS = {
+        3, 10, 100, 1000
     };
 
-    private final static long[] delays = {
-        1, 100, 1000, 10000
+    private final static long[] DELAYS = {
+        1, 10, 100, 1000
     };
 
     public MonitorTimePrecisionTest() {
@@ -48,41 +44,41 @@ public class MonitorTimePrecisionTest {
 
     @Test
     public void monitorPrecisionReadTest() throws InterruptedException {
-        for (int unit = 0; unit < units.length; unit++) {
-            for (int i = 0; i < repeatCounts[unit]; i++) {
+        for (int unit = 0; unit < UNITS.length; unit++) {
+            for (int i = 0; i < REPEAT_COUNTS[unit]; i++) {
                 Monitor<String> monitor = new Monitor<String>(null);
-                long now = systemTimer(units[unit]);
+                long now = systemTimer(UNITS[unit]);
                 boolean result = monitor.readAccess(
                     value -> {
                             fail("Never reach read access for false Predicate.");
                         },
                     x -> false,
-                    delays[unit], units[unit]);
+                    DELAYS[unit], UNITS[unit]);
                 assertFalse(result,
-                    "Test Monitor.readAccess interrupt wait for units:" + units[unit].toString());
-                assertTrue(systemTimer(units[unit]) >= toSystemUnits(delays[unit], units[unit]) + now,
-                    "Test Monitor.readAccess wasn't interrupted earlier for units:" + units[unit].toString());
+                    "Test Monitor.readAccess interrupt wait for units:" + UNITS[unit].toString());
+                assertTrue(systemTimer(UNITS[unit]) >= toSystemUnits(DELAYS[unit], UNITS[unit]) + now,
+                    "Test Monitor.readAccess wasn't interrupted earlier for units:" + UNITS[unit].toString());
             }
         }
     }
 
     @Test
     public void monitorPrecisionWriteTest() throws InterruptedException {
-        for (int unit = 0; unit < units.length; unit++) {
-            for (int i = 0; i < repeatCounts[unit]; i++) {
+        for (int unit = 0; unit < UNITS.length; unit++) {
+            for (int i = 0; i < REPEAT_COUNTS[unit]; i++) {
                 Monitor<String> monitor = new Monitor<String>(null);
-                long now = systemTimer(units[unit]);
+                long now = systemTimer(UNITS[unit]);
                 boolean result = monitor.writeAccess(
                     value -> {
                             fail("Never reach read access for false Predicate.");
                             return null;
                     },
                     x -> false,
-                    delays[unit], units[unit]);
+                    DELAYS[unit], UNITS[unit]);
                 assertFalse(result,
-                    "Test Monitor.writeAccess interrupt wait for units:" + units[unit].toString());
-                assertTrue(systemTimer(units[unit]) >= toSystemUnits(delays[unit], units[unit]) + now,
-                    "Test Monitor.writeAccess wasn't interrupted earlier for units:" + units[unit].toString());
+                    "Test Monitor.writeAccess interrupt wait for units:" + UNITS[unit].toString());
+                assertTrue(systemTimer(UNITS[unit]) >= toSystemUnits(DELAYS[unit], UNITS[unit]) + now,
+                    "Test Monitor.writeAccess wasn't interrupted earlier for units:" + UNITS[unit].toString());
             }
         }
     }

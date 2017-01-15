@@ -1,22 +1,17 @@
 package c3h8.util;
 
-import java.util.LinkedList;
-import java.util.List;
-
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.testng.annotations.Test;
 
-import static org.testng.Assert.fail;
 import static org.testng.Assert.assertTrue;
-import static org.testng.Assert.assertFalse;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertNull;
 
+@SuppressWarnings("StringEquality")
 public class MonitorTest {
     public MonitorTest() {
     }
@@ -24,7 +19,7 @@ public class MonitorTest {
     @Test
     public void monitorConstructorReadAccess() {
         final String monitorValue = "Test";
-        Monitor<String> monitor = new Monitor<String>(monitorValue);
+        Monitor<String> monitor = new Monitor<>(monitorValue);
         monitor.readAccess(value -> {
                 assertTrue(monitorValue == value, "Test Monitor.readAccess() with value passed into constructor.");
             });
@@ -33,7 +28,7 @@ public class MonitorTest {
     @Test
     public void monitorSetterReadAccess() {
         final String monitorValue = "Test";
-        Monitor<String> monitor = new Monitor<String>(null);
+        Monitor<String> monitor = new Monitor<>(null);
         assertNull(monitor.set(monitorValue), "Test Monitor.set method returns previous value.");
         monitor.readAccess(value -> {
                 assertTrue(monitorValue == value, "Test Monitor.readAccess() with value passed into setter.");
@@ -43,7 +38,7 @@ public class MonitorTest {
     @Test
     public void monitorWriteReadAccess() {
         final String monitorValue = "Test";
-        Monitor<String> monitor = new Monitor<String>(null);
+        Monitor<String> monitor = new Monitor<>(null);
         monitor.writeAccess(value -> monitorValue);
         monitor.readAccess(value -> {
                 assertTrue(monitorValue == value, "Test Monitor.readAccess() with value from write access.");
@@ -54,7 +49,7 @@ public class MonitorTest {
     public void monitorWriteAccessPredicate() throws InterruptedException {
         final String initialValue = "initial";
         final String modifiedValue = "modified";
-        Monitor<String> monitor = new Monitor<String>(initialValue);
+        Monitor<String> monitor = new Monitor<>(initialValue);
 
         monitor.writeAccess(
             value -> {
@@ -76,7 +71,7 @@ public class MonitorTest {
     public void monitorWriteAccessMillispredicate() throws InterruptedException {
         final String initialValue = "initial";
         final String modifiedValue = "modified";
-        Monitor<String> monitor = new Monitor<String>(initialValue);
+        Monitor<String> monitor = new Monitor<>(initialValue);
 
         monitor.writeAccess(
             value -> {
@@ -100,7 +95,7 @@ public class MonitorTest {
         Lock readLock = readWriteLock.readLock();
         Lock writeLock = readWriteLock.writeLock();
         
-        Monitor<String> monitor = new Monitor<String>("", readLock, writeLock);
+        Monitor<String> monitor = new Monitor<>("", readLock, writeLock);
         assertEquals(monitor.getReadLock(), readLock, "Read lock is the same as passed to monitor constructor.");
         assertEquals(monitor.getWriteLock(), writeLock, "Write lock is the same as passed to monitor constructor.");
     }
