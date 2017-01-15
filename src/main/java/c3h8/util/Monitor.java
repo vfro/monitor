@@ -11,8 +11,8 @@ import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
- * Monitor can be used for concurrent access to a value. It also provides an ability to wait
- * until the value becomes into some certain state.
+ * Monitor can be used for concurrent access to a value. It also provides an
+ * ability to wait until the value becomes into some certain state.
  * <pre>
  * Monitor&lt;Queue&lt;String&gt;&gt; outputQueue =
  *    new Monitor&lt;Queue&lt;String&gt;&gt;(new LinkedList&lt;String&gt;());
@@ -54,6 +54,7 @@ public class Monitor<Value> {
 
     /**
      * Get access to monitored value without any synchronization.
+     *
      * @return the monitored value.
      */
     protected Value getValue() {
@@ -62,6 +63,7 @@ public class Monitor<Value> {
 
     /**
      * Modify monitored value directly without any synchronization.
+     *
      * @param value the new monitored value.
      */
     protected void setValue(Value value) {
@@ -70,6 +72,7 @@ public class Monitor<Value> {
 
     /**
      * Get a lock which is used for read access.
+     *
      * @return read access lock.
      */
     protected final Lock getReadLock() {
@@ -78,6 +81,7 @@ public class Monitor<Value> {
 
     /**
      * Get lock which is used for write access.
+     *
      * @return write access lock.
      */
     protected final Lock getWriteLock() {
@@ -87,6 +91,7 @@ public class Monitor<Value> {
     /**
      * Get a condition variable which is signaled after state of the monitored
      * value becomes changed.
+     *
      * @return condition variable.
      */
     protected final Condition getCondition() {

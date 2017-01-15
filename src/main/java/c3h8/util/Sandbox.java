@@ -121,7 +121,7 @@ public final class Sandbox<Value extends Cloneable> implements Cloneable {
 
     /**
      * Unconditionally set value of the sandbox to monitor.
-     * 
+     *
      * @param monitor the monitor to set the value to.
      */
     void push(Monitor<Value> monitor) {
@@ -129,22 +129,24 @@ public final class Sandbox<Value extends Cloneable> implements Cloneable {
     }
 
     /**
-     * Compare monitor`s value with the sandbox value by reference and set it to monitor
-     * if the reference is the same.
-     * 
+     * Compare monitor`s value with the sandbox value by reference and set it to
+     * monitor if the reference is the same.
+     *
      * @param monitor the monitor to set the value to.
-     * @return true if comparison was successful and value was set to monitor, or false otherwise.
+     * @return true if comparison was successful and value was set to monitor,
+     * or false otherwise.
      */
     public boolean casByReference(Monitor<Value> monitor) {
         return this.push(monitor, false, true);
     }
 
     /**
-     * Compare monitor`s value with the sandbox value by value and set it to monitor
-     * if the value is the same.
-     * 
+     * Compare monitor`s value with the sandbox value by value and set it to
+     * monitor if the value is the same.
+     *
      * @param monitor the monitor to set the value to.
-     * @return true if comparison was successful and value was set to monitor, or false otherwise.
+     * @return true if comparison was successful and value was set to monitor,
+     * or false otherwise.
      */
     public boolean casByValue(Monitor<Value> monitor) {
         return this.push(monitor, false, false);
@@ -152,7 +154,7 @@ public final class Sandbox<Value extends Cloneable> implements Cloneable {
 
     /**
      * Convert sandbox value to string.
-     * 
+     *
      * @return String representation of sandbox value.
      */
     @Override
@@ -162,6 +164,7 @@ public final class Sandbox<Value extends Cloneable> implements Cloneable {
 
     /**
      * Check if sandbox value is equal to other`s sandbox value.
+     *
      * @param same the other sandbox.
      * @return true if the other`s sandbox value is the same.
      */
@@ -172,11 +175,12 @@ public final class Sandbox<Value extends Cloneable> implements Cloneable {
                 || !this.getClass().equals(same.getClass())) {
             return false;
         }
-        return this.value.equals(((Sandbox<Value>)same).value);
+        return this.value.equals(((Sandbox<Value>) same).value);
     }
 
     /**
      * Return hash code of sandbox value.
+     *
      * @return hash code of sandbox value.
      */
     @Override
@@ -186,6 +190,7 @@ public final class Sandbox<Value extends Cloneable> implements Cloneable {
 
     /**
      * Clone Sandbox.
+     *
      * @return New instance of Sandbox identical to this.
      */
     @Override

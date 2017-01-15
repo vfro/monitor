@@ -2,12 +2,12 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>c3h8.util</groupId>
-    <artifactId>propane</artifactId>
+    <groupId>org.bitbucket.vfro</groupId>
+    <artifactId>monitor</artifactId>
     <packaging>jar</packaging>
-    <version>2.1</version>
-    <name>Propane</name>
-    <description>Propane project provides implementation of a Monitor Concurrency pattern.</description>
+    <version>3.0</version>
+    <name>Monitor</name>
+    <description>Monitor project provides implementation of Monitor Concurrency Pattern.</description>
     <url>http://vfro.bitbucket.org/c3h8/index.html</url>
     <inceptionYear>2011</inceptionYear>
 
@@ -24,8 +24,8 @@
     </licenses>
 
     <scm>
-        <connection>scm:hg:http://bitbucket.org/vfro/c3h8</connection>
-        <developerConnection>scm:hg:https://bitbucket.org/vfro/c3h8</developerConnection>
+        <connection>scm:hg:http://bitbucket.org/vfro/monitor</connection>
+        <developerConnection>scm:hg:https://bitbucket.org/vfro/monitor</developerConnection>
         <url>https://bitbucket.org/vfro/c3h8/src</url>
     </scm>
 
@@ -45,7 +45,7 @@
 
     <issueManagement>
         <system>bitbucket.org</system>
-        <url>https://bitbucket.org/vfro/c3h8/issues</url>
+        <url>https://bitbucket.org/vfro/monitor/issues</url>
     </issueManagement>
 
     <dependencies>
@@ -53,15 +53,9 @@
         <dependency>
             <groupId>org.testng</groupId>
             <artifactId>testng</artifactId>
-            <version>6.8.7</version>
+            <version>6.10</version>
             <scope>test</scope>
         </dependency>
-
-<dependency>
-    <groupId>com.google.inject</groupId>
-    <artifactId>guice</artifactId>
-    <version>4.0-beta</version>
-</dependency>
     </dependencies>
 
     <build>

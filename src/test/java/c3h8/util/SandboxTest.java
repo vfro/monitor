@@ -10,6 +10,7 @@ import static org.testng.Assert.assertNotEquals;
 public class SandboxTest {
 
     private static final class CloneableString implements Cloneable {
+
         private final String string;
         private boolean cloneInvoked = false;
 
@@ -38,7 +39,7 @@ public class SandboxTest {
             if (obj == null || !this.getClass().equals(obj.getClass())) {
                 return false;
             }
-            CloneableString same = (CloneableString)obj;
+            CloneableString same = (CloneableString) obj;
             return this.string.equals(same.string);
         }
 
@@ -92,7 +93,7 @@ public class SandboxTest {
         Monitor<CloneableString> monitor = new Monitor<>(originalString);
         Sandbox<CloneableString> sandboxPush = new Sandbox<>();
         Sandbox<CloneableString> sandboxPull = new Sandbox<>();
-        
+
         sandboxPush.pull(monitor);
         monitor.set(otherString);
         sandboxPush.set(pushString);

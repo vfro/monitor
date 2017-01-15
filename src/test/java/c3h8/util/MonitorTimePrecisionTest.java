@@ -9,6 +9,7 @@ import static org.testng.Assert.assertTrue;
 import static org.testng.Assert.assertFalse;
 
 public class MonitorTimePrecisionTest {
+
     private final static TimeUnit[] UNITS = {
         TimeUnit.SECONDS, TimeUnit.MILLISECONDS, TimeUnit.MICROSECONDS, TimeUnit.NANOSECONDS
     };
@@ -49,15 +50,15 @@ public class MonitorTimePrecisionTest {
                 Monitor<String> monitor = new Monitor<String>(null);
                 long now = systemTimer(UNITS[unit]);
                 boolean result = monitor.readAccess(
-                    value -> {
+                        value -> {
                             fail("Never reach read access for false Predicate.");
                         },
-                    x -> false,
-                    DELAYS[unit], UNITS[unit]);
+                        x -> false,
+                        DELAYS[unit], UNITS[unit]);
                 assertFalse(result,
-                    "Test Monitor.readAccess interrupt wait for units:" + UNITS[unit].toString());
+                        "Test Monitor.readAccess interrupt wait for units:" + UNITS[unit].toString());
                 assertTrue(systemTimer(UNITS[unit]) >= toSystemUnits(DELAYS[unit], UNITS[unit]) + now,
-                    "Test Monitor.readAccess wasn't interrupted earlier for units:" + UNITS[unit].toString());
+                        "Test Monitor.readAccess wasn't interrupted earlier for units:" + UNITS[unit].toString());
             }
         }
     }
@@ -69,16 +70,16 @@ public class MonitorTimePrecisionTest {
                 Monitor<String> monitor = new Monitor<String>(null);
                 long now = systemTimer(UNITS[unit]);
                 boolean result = monitor.writeAccess(
-                    value -> {
+                        value -> {
                             fail("Never reach read access for false Predicate.");
                             return null;
-                    },
-                    x -> false,
-                    DELAYS[unit], UNITS[unit]);
+                        },
+                        x -> false,
+                        DELAYS[unit], UNITS[unit]);
                 assertFalse(result,
-                    "Test Monitor.writeAccess interrupt wait for units:" + UNITS[unit].toString());
+                        "Test Monitor.writeAccess interrupt wait for units:" + UNITS[unit].toString());
                 assertTrue(systemTimer(UNITS[unit]) >= toSystemUnits(DELAYS[unit], UNITS[unit]) + now,
-                    "Test Monitor.writeAccess wasn't interrupted earlier for units:" + UNITS[unit].toString());
+                        "Test Monitor.writeAccess wasn't interrupted earlier for units:" + UNITS[unit].toString());
             }
         }
     }

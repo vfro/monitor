@@ -13,6 +13,7 @@ import static org.testng.Assert.assertNull;
 
 @SuppressWarnings("StringEquality")
 public class MonitorTest {
+
     public MonitorTest() {
     }
 
@@ -21,8 +22,8 @@ public class MonitorTest {
         final String monitorValue = "Test";
         Monitor<String> monitor = new Monitor<>(monitorValue);
         monitor.readAccess(value -> {
-                assertTrue(monitorValue == value, "Test Monitor.readAccess() with value passed into constructor.");
-            });
+            assertTrue(monitorValue == value, "Test Monitor.readAccess() with value passed into constructor.");
+        });
     }
 
     @Test
@@ -31,8 +32,8 @@ public class MonitorTest {
         Monitor<String> monitor = new Monitor<>(null);
         assertNull(monitor.set(monitorValue), "Test Monitor.set method returns previous value.");
         monitor.readAccess(value -> {
-                assertTrue(monitorValue == value, "Test Monitor.readAccess() with value passed into setter.");
-            });
+            assertTrue(monitorValue == value, "Test Monitor.readAccess() with value passed into setter.");
+        });
     }
 
     @Test
@@ -41,8 +42,8 @@ public class MonitorTest {
         Monitor<String> monitor = new Monitor<>(null);
         monitor.writeAccess(value -> monitorValue);
         monitor.readAccess(value -> {
-                assertTrue(monitorValue == value, "Test Monitor.readAccess() with value from write access.");
-            });
+            assertTrue(monitorValue == value, "Test Monitor.readAccess() with value from write access.");
+        });
     }
 
     @Test
@@ -52,19 +53,19 @@ public class MonitorTest {
         Monitor<String> monitor = new Monitor<>(initialValue);
 
         monitor.writeAccess(
-            value -> {
+                value -> {
                     assertTrue(value == initialValue, "Motitor has initial value before modification.");
                     return modifiedValue;
                 },
-            value -> {
+                value -> {
                     assertTrue(value == initialValue, "Motitor has initial value inside predicate.");
                     return value == initialValue;
                 }
-            );
+        );
 
         monitor.readAccess(value -> {
-                assertTrue(modifiedValue == value, "Monitor has changed value after modification.");
-            });
+            assertTrue(modifiedValue == value, "Monitor has changed value after modification.");
+        });
     }
 
     @Test
@@ -74,19 +75,19 @@ public class MonitorTest {
         Monitor<String> monitor = new Monitor<>(initialValue);
 
         monitor.writeAccess(
-            value -> {
+                value -> {
                     assertTrue(value == initialValue, "Motitor has initial value before modification.");
                     return modifiedValue;
                 },
-            value -> {
+                value -> {
                     assertTrue(value == initialValue, "Motitor has initial value inside predicate.");
                     return value == initialValue;
                 },
-            1000, TimeUnit.MILLISECONDS);
+                1000, TimeUnit.MILLISECONDS);
 
         monitor.readAccess(value -> {
-                assertTrue(modifiedValue == value, "Monitor has changed value after modification.");
-            });
+            assertTrue(modifiedValue == value, "Monitor has changed value after modification.");
+        });
     }
 
     @Test
@@ -94,7 +95,7 @@ public class MonitorTest {
         ReadWriteLock readWriteLock = new ReentrantReadWriteLock();
         Lock readLock = readWriteLock.readLock();
         Lock writeLock = readWriteLock.writeLock();
-        
+
         Monitor<String> monitor = new Monitor<>("", readLock, writeLock);
         assertEquals(monitor.getReadLock(), readLock, "Read lock is the same as passed to monitor constructor.");
         assertEquals(monitor.getWriteLock(), writeLock, "Write lock is the same as passed to monitor constructor.");

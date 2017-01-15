@@ -12,12 +12,13 @@ import org.testng.annotations.Test;
 import static org.testng.Assert.assertEquals;
 
 public class MonitorConcurrentTest {
+
     MonitorConcurrentTest() {
     }
 
     @Test
     public void monitorConcurentReadWriteAccess()
-        throws InterruptedException, BrokenBarrierException {
+            throws InterruptedException, BrokenBarrierException {
         final List<Object> errors = new LinkedList<>();
         final Monitor<String> monitor = new Monitor<>("");
         final CyclicBarrier barrier = new CyclicBarrier(3);
@@ -33,7 +34,7 @@ public class MonitorConcurrentTest {
                         },
                         value -> value.equals("reader-await")
                 );
-            } catch(InterruptedException | BrokenBarrierException e) {
+            } catch (InterruptedException | BrokenBarrierException e) {
                 errors.add(e);
             }
         }, "monitorConcurentReadWriteAccess.reader");
@@ -50,7 +51,7 @@ public class MonitorConcurrentTest {
                         },
                         value -> value.equals("writer-await")
                 );
-            } catch(InterruptedException | BrokenBarrierException e) {
+            } catch (InterruptedException | BrokenBarrierException e) {
                 errors.add(e);
             }
         }, "monitorConcurentReadWriteAccess.writer");
@@ -65,8 +66,8 @@ public class MonitorConcurrentTest {
         writer.join();
 
         monitor.readAccess(value -> {
-                assertEquals(value, "reader-await", "Test Monitor writeAccess/readAccess.");
-            });
+            assertEquals(value, "reader-await", "Test Monitor writeAccess/readAccess.");
+        });
         assertEquals(errors.size(), 0, "Test monitor has no errors during writeAccess/readAccess.");
     }
 
@@ -80,7 +81,7 @@ public class MonitorConcurrentTest {
             result += i;
             final int item = i;
             sum.writeAccess(
-                stackSum -> {
+                    stackSum -> {
                         stackSum.push(item);
                         return stackSum;
                     });
@@ -90,28 +91,28 @@ public class MonitorConcurrentTest {
         final CyclicBarrier barrier = new CyclicBarrier(11);
         List<Thread> workers = new LinkedList<>();
         for (int i = 0; i < 10; i++) {
-            Thread worker = 
-                new Thread(
-                    () -> {
-                        try {
-                            barrier.await();
-                            while(true) {
-                                sum.writeAccess(
-                                        stackSum -> {
-                                            int value1 = stackSum.pop();
-                                            int value2 = stackSum.pop();
-                                            stackSum.push(value1 + value2);
-                                            return stackSum;
-                                        },
-                                        stackSum -> stackSum.size() >= 2
-                                );
-                            }
-                        } catch(InterruptedException e) {
-                            // It is okay. Worker is interrupted.
-                        } catch(BrokenBarrierException e) {
-                            errors.add(e);
-                        }
-            }, "calculateSum.worker " + Integer.toString(i));
+            Thread worker
+                    = new Thread(
+                            () -> {
+                                try {
+                                    barrier.await();
+                                    while (true) {
+                                        sum.writeAccess(
+                                                stackSum -> {
+                                                    int value1 = stackSum.pop();
+                                                    int value2 = stackSum.pop();
+                                                    stackSum.push(value1 + value2);
+                                                    return stackSum;
+                                                },
+                                                stackSum -> stackSum.size() >= 2
+                                        );
+                                    }
+                                } catch (InterruptedException e) {
+                                    // It is okay. Worker is interrupted.
+                                } catch (BrokenBarrierException e) {
+                                    errors.add(e);
+                                }
+                            }, "calculateSum.worker " + Integer.toString(i));
             worker.start();
             workers.add(worker);
         }
@@ -119,10 +120,10 @@ public class MonitorConcurrentTest {
         barrier.await();
         sum.readAccess(
                 stackSum -> {
-                    assertEquals(finalResult, (int)stackSum.pop(), "Workers have calculated resuld correctly.");
+                    assertEquals(finalResult, (int) stackSum.pop(), "Workers have calculated resuld correctly.");
                 },
                 stackSum -> stackSum.size() == 1
-            );
+        );
 
         assertEquals(errors.size(), 0, "Test monitor has no errors during calculating sum.");
         workers.stream().forEach((worker) -> {
