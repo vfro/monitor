@@ -15,7 +15,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  * ability to wait until the value becomes into some certain state.
  * <pre>
  * Monitor&lt;Queue&lt;String&gt;&gt; outputQueue =
- *    new Monitor&lt;Queue&lt;String&gt;&gt;(new LinkedList&lt;String&gt;());
+ *    new Monitor&lt;&lt;String&gt;&gt;(new LinkedList&lt;String&gt;());
  *
  * // ...
  * while(true) {
