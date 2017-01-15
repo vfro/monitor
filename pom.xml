@@ -8,7 +8,7 @@
     <version>3.0</version>
     <name>Monitor</name>
     <description>Monitor project provides implementation of Monitor Concurrency Pattern.</description>
-    <url>http://vfro.bitbucket.org/c3h8/index.html</url>
+    <url>https://vfro.github.io/monitor</url>
     <inceptionYear>2011</inceptionYear>
 
     <properties>
@@ -26,7 +26,7 @@
     <scm>
         <connection>scm:git:https://github.com/vfro/monitor.git</connection>
         <developerConnection>scm:git:https://github.com/vfro/monitor.git</developerConnection>
-        <url>https://bitbucket.org/vfro/c3h8/src</url>
+        <url>https://vfro.github.io/monitor</url>
     </scm>
 
     <developers>
@@ -44,7 +44,7 @@
     </developers>
 
     <issueManagement>
-        <system>bitbucket.org</system>
+        <system>github.com</system>
         <url>https://github.com/vfro/monitor/issues</url>
     </issueManagement>
 
