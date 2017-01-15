@@ -2,7 +2,7 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>org.bitbucket.vfro</groupId>
+    <groupId>com.github.vfro</groupId>
     <artifactId>monitor</artifactId>
     <packaging>jar</packaging>
     <version>3.0</version>
@@ -24,8 +24,8 @@
     </licenses>
 
     <scm>
-        <connection>scm:hg:http://bitbucket.org/vfro/monitor</connection>
-        <developerConnection>scm:hg:https://bitbucket.org/vfro/monitor</developerConnection>
+        <connection>scm:git:https://github.com/vfro/monitor.git</connection>
+        <developerConnection>scm:git:https://github.com/vfro/monitor.git</developerConnection>
         <url>https://bitbucket.org/vfro/c3h8/src</url>
     </scm>
 
@@ -34,7 +34,7 @@
             <id>vfro</id>
             <name>Volodymyr Frolov</name>
             <email>frolov.volodymyr@gmail.com</email>
-            <url>http://bitbucket.org/vfro</url>
+            <url>https://github.com/vfro</url>
             <roles>
                 <role>architect</role>
                 <role>developer</role>
@@ -45,7 +45,7 @@
 
     <issueManagement>
         <system>bitbucket.org</system>
-        <url>https://bitbucket.org/vfro/monitor/issues</url>
+        <url>https://github.com/vfro/monitor/issues</url>
     </issueManagement>
 
     <dependencies>

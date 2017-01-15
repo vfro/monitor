@@ -1,6 +1,6 @@
 # monitor
 
-Implementation of Monitor Concurrency Pattern.
+Implementation of Monitor Concurrency Pattern in Java.
 
 For more information see Project [site](https://vfro.github.io/monitor) or [JavaDoc](https://vfro.github.io/monitor/apidocs/index.html).
 
