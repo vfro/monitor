@@ -10,7 +10,7 @@ Monitor can be used for concurrent access to its value. It also provides an abil
  Monitor<Queue<String>> outputQueue =
     new Monitor<>(new LinkedList<String>());
 
- // ...
+ // ... monitoring thread
  while(true) {
     // Wait until some string is added to the queue
     // and print it into System.out
@@ -22,11 +22,13 @@ Monitor can be used for concurrent access to its value. It also provides an abil
              // to preserve reference to the queue
              return queue;
           },
+
+       // Wake up when the queue is not empty
        queue -> !queue.isEmpty()
     );
  }
 
- // Some other thread
+ // ... somewhere in some other thread
  outputQueue.writeAccess(
     queue -> {
           queue.add("Hello Monitor!");

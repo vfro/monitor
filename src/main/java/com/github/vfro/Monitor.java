@@ -15,9 +15,9 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  * ability to wait until the value becomes into some certain state.
  * <pre>
  * Monitor&lt;Queue&lt;String&gt;&gt; outputQueue =
- *    new Monitor&lt;&lt;String&gt;&gt;(new LinkedList&lt;String&gt;());
+ *    new Monitor&lt;&gt;(new LinkedList&lt;String&gt;());
  *
- * // ...
+ * // ... monitoring thread
  * while(true) {
  *    // Wait until some string is added to the queue
  *    // and print it into System.out
@@ -29,11 +29,13 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  *             // to preserve reference to the queue
  *             return queue;
  *          },
+ *
+ *       // Wake up when the queue is not empty
  *       queue -&gt; !queue.isEmpty()
  *    );
  * }
  *
- * // Some other thread
+ * // ... somewhere in some other thread
  * outputQueue.writeAccess(
  *    queue -&gt; {
  *          queue.add("Hello Monitor!");

@@ -5,6 +5,8 @@ import java.lang.reflect.Method;
 
 /**
  * Sandbox can be used to access a copy of value controlled by {@link Monitor}.
+ * Also it provides compare and swap operations over monitor object. Compare and Swap operations
+ * can compare values either by reference or by value.
  *
  * @author Volodymyr Frolov
  * @param <Value> value of the monitor.
