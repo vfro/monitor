@@ -52,7 +52,7 @@ public final class Sandbox<Value extends Cloneable> implements Cloneable {
     }
 
     /**
-     * Create new instance of Sandbox and {@link #pull(c3h8.util.Monitor)} its
+     * Create new instance of Sandbox and {@link #pull(com.github.vfro.Monitor)} its
      * value from monitor.
      *
      * @param monitor initial value is pulled from the monitor.
