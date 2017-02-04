@@ -36,3 +36,13 @@ Monitor can be used for concurrent access to its value. It also provides an abil
        }
  );
 ```
+
+# installation from maven
+
+```xml
+        <dependency>
+            <groupId>com.github.vfro</groupId>
+            <artifactId>monitor</artifactId>
+            <version>3.0.0</version>
+        </dependency>
+```
