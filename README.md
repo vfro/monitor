@@ -37,7 +37,7 @@ Monitor can be used for concurrent access to its value. It also provides an abil
  );
 ```
 
-# installation from maven
+# dependency in pom.xml
 
 ```xml
         <dependency>
