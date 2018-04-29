@@ -6,7 +6,7 @@
  2011-11-17
  ------
 
- ~~ Copyright 2011 Volodymyr Frolov
+ ~~ Copyright 2011-2018 Volodymyr Frolov
  ~~
  ~~ Licensed under the Apache License, Version 2.0 (the "License");
  ~~ you may not use this file except in compliance with the License.
@@ -22,4 +22,4 @@
 
 Monitor Project
 
-  Monitor Project provides implementation of Monitor Concurrency pattern.
+  Java implementation of Monitor Concurrency Pattern

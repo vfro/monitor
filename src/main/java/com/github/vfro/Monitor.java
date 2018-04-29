@@ -11,21 +11,23 @@ import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
- * Monitor can be used for concurrent access to a value. It also provides an
- * ability to wait until the value becomes into some certain state.
+ * Monitor is a synchronization construct that allows threads to have both
+ * thread-safe access to underlying monitored object or value (hereinafter
+ * monitored entity) and wait for it to mutate (if it is a mutable object) or
+ * change (if it is an immutable value) to a desirable state.
+ *
  * <pre>
  * Monitor&lt;Queue&lt;String&gt;&gt; outputQueue =
  *    new Monitor&lt;&gt;(new LinkedList&lt;String&gt;());
  *
  * // ... monitoring thread
  * while(true) {
- *    // Wait until some string is added to the queue
- *    // and print it into System.out
- *    outputQueue.writeAccess(
+ *    // Wait for a new string added to the queue and print it
+ *    outputQueue.write(
  *       queue -&gt; {
  *             System.out.println(queue.pull());
  *
- *             // Write access lambda must return the parameter object
+ *             // Write access lambda must return the argument object
  *             // to preserve reference to the queue
  *             return queue;
  *          },
@@ -36,7 +38,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  * }
  *
  * // ... somewhere in some other thread
- * outputQueue.writeAccess(
+ * outputQueue.write(
  *    queue -&gt; {
  *          queue.add("Hello Monitor!");
  *          return queue;
@@ -44,55 +46,60 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  * );
  * </pre>
  *
- * @param <Value> value of the monitor.
+ * @param <Entity> monitored entity type.
  */
 @SuppressWarnings("LocalVariableHidesMemberVariable")
-public class Monitor<Value> {
+public class Monitor<Entity> {
 
-    private Value value;
+    private Entity entity;
     private final Lock readLock;
     private final Lock writeLock;
     private final Condition condition;
 
     /**
-     * Get access to monitored value without any synchronization.
+     * Get access to monitored entity without any synchronization.
      *
-     * @return the monitored value.
+     * @return the monitored entity.
+     * @see #setEntity(java.lang.Object)
      */
-    protected Value getValue() {
-        return this.value;
+    protected Entity getEntity() {
+        return this.entity;
     }
 
     /**
-     * Modify monitored value directly without any synchronization.
+     * Modify monitored entity directly without any synchronization.
      *
-     * @param value the new monitored value.
+     * @param entity the new monitored entity.
+     * @see #set(java.lang.Object)
+     * @see #getEntity()
      */
-    protected void setValue(Value value) {
-        this.value = value;
+    protected void setEntity(Entity entity) {
+        this.entity = entity;
     }
 
     /**
-     * Get a lock which is used for read access.
+     * Get a lock which is used for shared access.
      *
      * @return read access lock.
+     * @see #getWriteLock()
      */
     protected final Lock getReadLock() {
         return this.readLock;
     }
 
     /**
-     * Get lock which is used for write access.
+     * Get lock which is used for exclusive access.
      *
      * @return write access lock.
+     * @see #getReadLock()
      */
     protected final Lock getWriteLock() {
         return this.writeLock;
     }
 
     /**
-     * Get a condition variable which is signaled after state of the monitored
-     * value becomes changed.
+     * Get a condition variable which is signaled after mutation or change of
+     * monitored entity.
      *
      * @return condition variable.
      */
@@ -144,7 +151,7 @@ public class Monitor<Value> {
     };
 
     private boolean accessByTime(
-            Function<Value, Value> function, Predicate<Value> predicate,
+            Function<Entity, Entity> function, Predicate<Entity> predicate,
             long time, TimeUnit unit, boolean isWrite
     ) throws InterruptedException {
         TimeTracker timeTracker = new TimeTracker(time, unit);
@@ -158,7 +165,8 @@ public class Monitor<Value> {
                 return false;
             }
 
-            while (!predicate.test(this.getValue())) {
+            // Concurrent predicates examine monitored entity exclusively.
+            while (!predicate.test(this.getEntity())) {
                 while (!this.condition.await(
                         timeTracker.timeLeft(),
                         TimeTracker.systemUnit(unit)
@@ -170,13 +178,15 @@ public class Monitor<Value> {
             }
 
             if (isWrite) {
-                this.setValue(function.apply(this.getValue()));
+                this.setEntity(function.apply(this.getEntity()));
                 this.condition.signalAll();
             } else {
+                // Write lock used for evaluating predicate
+                // now must be downgraded.
                 this.getReadLock().lock();
                 aquiredLock.unlock();
                 aquiredLock = this.getReadLock();
-                function.apply(this.getValue());
+                function.apply(this.getEntity());
             }
         } finally {
             if (aquiredLock != null) {
@@ -187,41 +197,47 @@ public class Monitor<Value> {
     }
 
     private void accessByPredicate(
-            Function<Value, Value> function, Predicate<Value> predicate, boolean isWrite
+            Function<Entity, Entity> function,
+            Predicate<Entity> predicate,
+            boolean isWrite
     ) throws InterruptedException {
-        Lock lockedObject = null;
+        Lock aquiredLock = null;
         try {
             Lock tryLock = this.getWriteLock();
             tryLock.lockInterruptibly();
-            lockedObject = tryLock;
-            while (!predicate.test(this.getValue())) {
+            aquiredLock = tryLock;
+
+            // Concurrent predicates examine monitored entity exclusively.
+            while (!predicate.test(this.getEntity())) {
                 this.condition.await();
             }
 
             if (isWrite) {
-                this.setValue(function.apply(this.getValue()));
+                this.setEntity(function.apply(this.getEntity()));
                 this.condition.signalAll();
             } else {
-                Lock downgradeLock = this.getReadLock();
-                downgradeLock.lockInterruptibly();
-                lockedObject.unlock();
-                lockedObject = downgradeLock;
-                function.apply(this.getValue());
+                // Write lock used for evaluating predicate
+                // now must be downgraded.
+                Lock downgradedLock = this.getReadLock();
+                downgradedLock.lockInterruptibly();
+                aquiredLock.unlock();
+                aquiredLock = downgradedLock;
+                function.apply(this.getEntity());
             }
         } finally {
-            if (lockedObject != null) {
-                lockedObject.unlock();
+            if (aquiredLock != null) {
+                aquiredLock.unlock();
             }
         }
     }
 
     /**
-     * Create new instance of Monitor initialized by specified value.
+     * Create new instance of Monitor initialized by monitored entity.
      *
-     * @param value initial value of the monitor.
+     * @param entity monitored entity.
      */
-    public Monitor(Value value) {
-        this.value = value;
+    public Monitor(Entity entity) {
+        this.entity = entity;
         ReadWriteLock readWriteLock = new ReentrantReadWriteLock();
         this.readLock = readWriteLock.readLock();
         this.writeLock = readWriteLock.writeLock();
@@ -229,165 +245,200 @@ public class Monitor<Value> {
     }
 
     /**
-     * Create new instance of Monitor initialized by value and custom locks.
+     * Create new instance of Monitor initialized by an entity and custom locks.
      *
      * Custom locks must be re-entrant and support lock downgrading (Acquiring
      * read lock inside write lock, and release write lock after that).
      *
-     * @param value initial value of a monitor.
+     * @param entity monitored entity.
      * @param readLock Custom read lock.
      * @param writeLock Custom write lock. It may be the same instance as
      * {@code readLock}.
+     * @see java.util.concurrent.locks.ReentrantReadWriteLock
      */
-    protected Monitor(Value value, Lock readLock, Lock writeLock) {
-        this.value = value;
+    protected Monitor(Entity entity, Lock readLock, Lock writeLock) {
+        this.entity = entity;
         this.readLock = readLock;
         this.writeLock = writeLock;
         this.condition = this.writeLock.newCondition();
     }
 
     /**
-     * Access monitored value for read (in shared mode).
+     * Access monitored entity in shared mode.
      *
-     * @param consumer to obtain read access. The consumer must not change
-     * internal state of monitored value.
+     * @param consumer access monitored entity. The consumer must not mutate
+     * monitored entity.
+     * @see #read(java.util.function.Consumer, java.util.function.Predicate)
+     * @see #read(java.util.function.Consumer, java.util.function.Predicate,
+     * long, java.util.concurrent.TimeUnit)
      */
-    public final void readAccess(Consumer<Value> consumer) {
-        Lock lockedObject = this.getReadLock();
+    public final void read(Consumer<Entity> consumer) {
+        Lock lock = this.getReadLock();
         try {
-            lockedObject.lock();
-            consumer.accept(this.getValue());
+            lock.lock();
+            consumer.accept(this.getEntity());
         } finally {
-            lockedObject.unlock();
+            lock.unlock();
         }
     }
 
     /**
-     * Causes current thread to wait until monitor becomes to some certain state
-     * and access monitored value for read (in shared mode).
+     * Wait for monitored entity to mutate or change to a desirable state and
+     * access it in shared mode.
      *
-     * Predicate expression must not change a state of monitored value.
-     *
-     * @param consumer to obtain read access. Consumer must not change internal
-     * state of monitored value.
-     * @param predicate to define a state of monitored value.
+     * @param consumer access monitored entity. The consumer must not mutate
+     * monitored entity.
+     * @param predicate a desirable state.
      * @throws InterruptedException if the current thread is interrupted.
+     * @see #read(java.util.function.Consumer)
+     * @see #read(java.util.function.Consumer, java.util.function.Predicate,
+     * long, java.util.concurrent.TimeUnit)
      */
-    public final void readAccess(
-            Consumer<Value> consumer, Predicate<Value> predicate
+    public final void read(
+            Consumer<Entity> consumer, Predicate<Entity> predicate
     ) throws InterruptedException {
         accessByPredicate(
-                value -> {
-                    consumer.accept(value);
-                    return value;
+                entity -> {
+                    consumer.accept(entity);
+                    return entity;
                 },
-                predicate, false);
+                predicate, false
+        );
     }
 
     /**
-     * Causes current thread to wait until monitor becomes to some certain state
-     * and access monitored value for read (in shared mode).
+     * Wait for monitored entity to mutate or change to a desirable state and
+     * access it in shared mode.
      *
-     * Predicate instance must not change a state of monitored value.
-     *
-     * @param consumer to obtain read access. The instance must not change
-     * internal state of monitored value.
-     * @param predicate to define a state of monitored value.
+     * @param consumer access monitored entity. The consumer must not mutate
+     * monitored entity.
+     * @param predicate a desirable state.
      * @param time the maximum time to wait.
      * @param unit the time unit of the time argument.
-     * @return {@code true} if the monitored value has been accessed or
+     * @return {@code true} if the monitored entity has been accessed or
      * {@code false} if the waiting time detectably elapsed before return from
      * the method.
      * @throws InterruptedException if the current thread is interrupted.
+     * @see #read(java.util.function.Consumer)
+     * @see #read(java.util.function.Consumer, java.util.function.Predicate)
      */
-    public final boolean readAccess(
-            Consumer<Value> consumer, Predicate<Value> predicate,
+    public final boolean read(
+            Consumer<Entity> consumer, Predicate<Entity> predicate,
             long time, TimeUnit unit
     ) throws InterruptedException {
         return this.accessByTime(
-                value -> {
-                    consumer.accept(value);
-                    return value;
+                entity -> {
+                    consumer.accept(entity);
+                    return entity;
                 },
-                predicate, time, unit, false);
+                predicate, time, unit, false
+        );
     }
 
     /**
-     * Access monitored value for write (in exclusive mode).
+     * Access monitored entity in exclusive mode.
      *
-     * Return value of function becomes new value of monitor.
+     * Return value of function becomes new monitored entity.
      *
-     * @param function instance change monitored value. The function may change
-     * internal state of monitored value.
+     * @param function exclusively access monitored entity. The function may
+     * mutate monitored entity or replace it with a new one.
+     * @see #write(java.util.function.Function, java.util.function.Predicate)
+     * @see #write(java.util.function.Function, java.util.function.Predicate,
+     * long, java.util.concurrent.TimeUnit)
      */
-    public final void writeAccess(Function<Value, Value> function) {
-        Lock lockedObject = this.getWriteLock();
+    public final void write(Function<Entity, Entity> function) {
+        Lock lock = this.getWriteLock();
         try {
-            lockedObject.lock();
-            this.setValue(function.apply(this.getValue()));
+            lock.lock();
+            this.setEntity(function.apply(this.getEntity()));
             this.condition.signalAll();
         } finally {
-            lockedObject.unlock();
+            lock.unlock();
         }
     }
 
     /**
-     * Causes current thread to wait until monitor becomes to some certain state
-     * and access monitored value for write (in exclusive mode).
+     * Wait for monitored entity to mutate or change to a desirable state and
+     * access it in exclusive mode.
      *
-     * Return value of function becomes new value of monitor.
+     * Return value of function becomes new monitored entity.
      *
-     * @param function to obtain write access. The function may change internal
-     * state of monitored value.
-     * @param predicate to define a state of monitored value.
+     * @param function exclusively access monitored entity. The function may
+     * mutate monitored entity or replace it with a new one.
+     * @param predicate a desirable state.
      * @throws InterruptedException if the current thread is interrupted.
+     * @see #write(java.util.function.Function)
+     * @see #write(java.util.function.Function, java.util.function.Predicate,
+     * long, java.util.concurrent.TimeUnit)
      */
-    public final void writeAccess(
-            Function<Value, Value> function, Predicate<Value> predicate
+    public final void write(
+            Function<Entity, Entity> function,
+            Predicate<Entity> predicate
     ) throws InterruptedException {
-        accessByPredicate(function, predicate, true);
+        this.accessByPredicate(function, predicate, true);
     }
 
     /**
-     * Causes current thread to wait until monitor becomes to some certain state
-     * and access monitored value for write (in exclusive mode).
+     * Wait for monitored entity to mutate or change to a desirable state and
+     * access it in exclusive mode.
      *
-     * Return value of function becomes new value of monitor.
+     * Return value of function becomes new monitored entity.
      *
-     * @param function to obtain write access. The function may change internal
-     * state of monitored value.
-     * @param predicate to define a state of monitored value.
+     * @param function exclusively access monitored entity. The function may
+     * mutate monitored entity or replace it with a new one.
+     * @param predicate a desirable state.
      * @param time the maximum time to wait.
      * @param unit the time unit of the time argument.
-     * @return {@code true} if the monitored value has been accessed or
+     * @return {@code true} if the monitored entity has been accessed or
      * {@code false} if the waiting time detectably elapsed before return from
      * the method.
      * @throws InterruptedException if the current thread is interrupted.
+     * @see #write(java.util.function.Function)
+     * @see #write(java.util.function.Function, java.util.function.Predicate)
      */
-    public final boolean writeAccess(
-            Function<Value, Value> function, Predicate<Value> predicate,
+    public final boolean write(
+            Function<Entity, Entity> function,
+            Predicate<Entity> predicate,
             long time, TimeUnit unit
     ) throws InterruptedException {
         return this.accessByTime(function, predicate, time, unit, true);
     }
 
     /**
-     * Set new value of monitor.
+     * Change monitored entity.
      *
-     * @param value new value of monitor.
-     * @return previous value of monitor.
+     * @param entity new monitored entity.
+     * @see #swap(java.lang.Object)
      */
-    public final Value set(Value value) {
-        Value previousValue;
-        Lock lockedObject = this.getWriteLock();
+    public final void set(Entity entity) {
+        Lock lock = this.getWriteLock();
         try {
-            lockedObject.lock();
-            previousValue = this.getValue();
-            this.setValue(value);
+            lock.lock();
+            this.setEntity(entity);
             this.condition.signalAll();
         } finally {
-            lockedObject.unlock();
+            lock.unlock();
         }
-        return previousValue;
+    }
+
+    /**
+     * Change monitored entity and return the previous value.
+     *
+     * @param entity new monitored entity.
+     * @return previous monitored entity.
+     * @see #set(java.lang.Object)
+     */
+    public final Entity swap(Entity entity) {
+        Entity previousEntity;
+        Lock lock = this.getWriteLock();
+        try {
+            lock.lock();
+            previousEntity = this.getEntity();
+            this.setEntity(entity);
+            this.condition.signalAll();
+        } finally {
+            lock.unlock();
+        }
+        return previousEntity;
     }
 }

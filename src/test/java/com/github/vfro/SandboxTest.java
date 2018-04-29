@@ -1,7 +1,5 @@
 package com.github.vfro;
 
-import com.github.vfro.Sandbox;
-import com.github.vfro.Monitor;
 import org.testng.annotations.Test;
 
 import static org.testng.Assert.assertTrue;
@@ -60,7 +58,7 @@ public class SandboxTest {
     public void sandboxConstructorGet() {
         CloneableString string = new CloneableString("string");
         Sandbox<CloneableString> sandbox = new Sandbox<>(string);
-        assertTrue(sandbox.get() == string, "Sandbox.get() returns the same value as passed to constructor.");
+        assertTrue(sandbox.get() == string, "Sandbox.get() returns the same entity as passed to constructor.");
     }
 
     @Test
@@ -68,7 +66,7 @@ public class SandboxTest {
         CloneableString string = new CloneableString("string");
         Sandbox<CloneableString> sandbox = new Sandbox<>();
         sandbox.set(string);
-        assertTrue(sandbox.get() == string, "Sandbox.get() returns the same value as passed to constructor.");
+        assertTrue(sandbox.get() == string, "Sandbox.get() returns the same entity as passed to constructor.");
         assertFalse(string.isCloneInvoked(), "Sandbox.set() does not invoke clone method for the argument.");
     }
 
@@ -81,9 +79,9 @@ public class SandboxTest {
         CloneableString pullString = sandbox.pull(monitor);
 
         assertTrue(string.isCloneInvoked(), "Sandbox.pull() invokes clone() method for the argument.");
-        assertEquals(pullString, string, "Sandbox.pull() returns copy of the value from monitor.");
+        assertEquals(pullString, string, "Sandbox.pull() returns copy of the entity from monitor.");
         assertTrue(pullString != string, "Sandbox.pull() returns not the same instance as pulled from monitor, but its copy.");
-        assertTrue(sandbox.get() == pullString, "Sandbox.get() returns the same value as pulled from monitor.");
+        assertTrue(sandbox.get() == pullString, "Sandbox.get() returns the same entity as pulled from monitor.");
     }
 
     @Test
@@ -102,7 +100,7 @@ public class SandboxTest {
         sandboxPush.push(monitor);
 
         sandboxPull.pull(monitor);
-        assertEquals(sandboxPull.get(), pushString, "Sandbox.push() puts its value to monitor unconditionaly.");
+        assertEquals(sandboxPull.get(), pushString, "Sandbox.push() puts its entity to monitor unconditionaly.");
     }
 
     @Test
@@ -131,7 +129,7 @@ public class SandboxTest {
         sandboxCheck.pull(monitor);
 
         assertTrue(successful, "Sandbox.casByValue() completed successfully for identical string.");
-        assertEquals(sandboxCheck.get(), successfulCasString, "Sandbox.casByValue() puts its value to monitor.");
+        assertEquals(sandboxCheck.get(), successfulCasString, "Sandbox.casByValue() puts its entity to monitor.");
 
         // Monitor contains identical string
         boolean unsuccessful = sandboxUnsuccessfulCas.casByValue(monitor);
@@ -165,7 +163,7 @@ public class SandboxTest {
         sandboxCheck.pull(monitor);
 
         assertTrue(successful, "Sandbox.casByReference() completed successfully for identical string.");
-        assertEquals(sandboxCheck.get(), successfulCasString, "Sandbox.casByReference() puts its value to monitor.");
+        assertEquals(sandboxCheck.get(), successfulCasString, "Sandbox.casByReference() puts its entity to monitor.");
 
         monitor.set(theSameString);
 
@@ -196,7 +194,7 @@ public class SandboxTest {
         CloneableString stringTwo = new CloneableString("string");
         sandboxTwo.set(stringTwo);
 
-        assertEquals(sandboxOne, sandboxTwo, "Sandbox.equals() equals other Sandbox with the same value.");
+        assertEquals(sandboxOne, sandboxTwo, "Sandbox.equals() equals other Sandbox with the same entity.");
     }
 
     @Test
@@ -205,7 +203,7 @@ public class SandboxTest {
         Sandbox<CloneableString> sandbox = new Sandbox<>(string);
 
         assertNotEquals(sandbox, null, "Sandbox.equals() doesn't equals to null.");
-        assertNotEquals(sandbox, string, "Sandbox.equals() doesn't equals to value.");
+        assertNotEquals(sandbox, string, "Sandbox.equals() doesn't equals to entity.");
     }
 
     @Test

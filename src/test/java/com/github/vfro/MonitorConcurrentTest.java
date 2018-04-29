@@ -1,6 +1,5 @@
 package com.github.vfro;
 
-import com.github.vfro.Monitor;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Stack;
@@ -18,7 +17,7 @@ public class MonitorConcurrentTest {
     }
 
     @Test
-    public void monitorConcurentReadWriteAccess()
+    public void monitorConcurentReadWrite() 
             throws InterruptedException, BrokenBarrierException {
         final List<Object> errors = new LinkedList<>();
         final Monitor<String> monitor = new Monitor<>("");
@@ -27,35 +26,35 @@ public class MonitorConcurrentTest {
         Thread reader = new Thread(() -> {
             try {
                 barrier.await();
-                monitor.readAccess(
-                        value -> {
-                            if (!value.equals("reader-await")) {
+                monitor.read(
+                        entity -> {
+                            if (!entity.equals("reader-await")) {
                                 errors.add("monitor reader predicate doesn't work.");
                             }
                         },
-                        value -> value.equals("reader-await")
+                        entity -> entity.equals("reader-await")
                 );
             } catch (InterruptedException | BrokenBarrierException e) {
                 errors.add(e);
             }
-        }, "monitorConcurentReadWriteAccess.reader");
+        }, "monitorConcurentReadWrite.reader");
 
         Thread writer = new Thread(() -> {
             try {
                 barrier.await();
-                monitor.writeAccess(
-                        value -> {
-                            if (!value.equals("writer-await")) {
+                monitor.write(
+                        entity -> {
+                            if (!entity.equals("writer-await")) {
                                 errors.add("monitor write predicate doesn't work.");
                             }
                             return "reader-await";
                         },
-                        value -> value.equals("writer-await")
+                        entity -> entity.equals("writer-await")
                 );
             } catch (InterruptedException | BrokenBarrierException e) {
                 errors.add(e);
             }
-        }, "monitorConcurentReadWriteAccess.writer");
+        }, "monitorConcurentReadWrite.writer");
 
         reader.start();
         writer.start();
@@ -66,14 +65,15 @@ public class MonitorConcurrentTest {
         reader.join();
         writer.join();
 
-        monitor.readAccess(value -> {
-            assertEquals(value, "reader-await", "Test Monitor writeAccess/readAccess.");
+        monitor.read(entity -> {
+            assertEquals(entity, "reader-await", "Monitor final state after write/read.");
         });
-        assertEquals(errors.size(), 0, "Test monitor has no errors during writeAccess/readAccess.");
+        assertEquals(errors.size(), 0, "There were no exceptions during write/read.");
     }
 
     @Test
-    public void calculateSum() throws InterruptedException, BrokenBarrierException {
+    public void calculateSum()
+            throws InterruptedException, BrokenBarrierException {
         final List<Object> errors = new LinkedList<>();
 
         final Monitor<Stack<Integer>> sum = new Monitor<>(new Stack<>());
@@ -81,7 +81,7 @@ public class MonitorConcurrentTest {
         for (int i = 0; i < 1000; i++) {
             result += i;
             final int item = i;
-            sum.writeAccess(
+            sum.write(
                     stackSum -> {
                         stackSum.push(item);
                         return stackSum;
@@ -89,20 +89,21 @@ public class MonitorConcurrentTest {
         }
         final int finalResult = result;
 
-        final CyclicBarrier barrier = new CyclicBarrier(11);
+        final int THREADS_COUNT = 10;
+        final CyclicBarrier barrier = new CyclicBarrier(THREADS_COUNT + 1);
         List<Thread> workers = new LinkedList<>();
-        for (int i = 0; i < 10; i++) {
+        for (int i = 0; i < THREADS_COUNT; i++) {
             Thread worker
                     = new Thread(
                             () -> {
                                 try {
                                     barrier.await();
                                     while (true) {
-                                        sum.writeAccess(
+                                        sum.write(
                                                 stackSum -> {
-                                                    int value1 = stackSum.pop();
-                                                    int value2 = stackSum.pop();
-                                                    stackSum.push(value1 + value2);
+                                                    int entity1 = stackSum.pop();
+                                                    int entity2 = stackSum.pop();
+                                                    stackSum.push(entity1 + entity2);
                                                     return stackSum;
                                                 },
                                                 stackSum -> stackSum.size() >= 2
@@ -119,16 +120,14 @@ public class MonitorConcurrentTest {
         }
 
         barrier.await();
-        sum.readAccess(
+        sum.read(
                 stackSum -> {
-                    assertEquals(finalResult, (int) stackSum.pop(), "Workers have calculated resuld correctly.");
+                    assertEquals(finalResult, (int) stackSum.pop(), "Workers have calculated resulted sum correctly.");
                 },
                 stackSum -> stackSum.size() == 1
         );
 
-        assertEquals(errors.size(), 0, "Test monitor has no errors during calculating sum.");
-        workers.stream().forEach((worker) -> {
-            worker.interrupt();
-        });
+        assertEquals(errors.size(), 0, "There were no exceptions during sum calculation.");
+        workers.stream().forEach(Thread::interrupt);
     }
 }

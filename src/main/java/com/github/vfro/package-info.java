@@ -1,5 +1,5 @@
 /**
- * Implementation of a Monitor Concurrency pattern.
+ * Monitor Concurrency Pattern
  *
  * @author Volodymyr Frolov
  */

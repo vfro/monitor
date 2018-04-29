@@ -1,6 +1,5 @@
 package com.github.vfro;
 
-import com.github.vfro.Monitor;
 import java.util.concurrent.TimeUnit;
 
 import org.testng.annotations.Test;
@@ -48,18 +47,18 @@ public class MonitorTimePrecisionTest {
     public void monitorPrecisionReadTest() throws InterruptedException {
         for (int unit = 0; unit < UNITS.length; unit++) {
             for (int i = 0; i < REPEAT_COUNTS[unit]; i++) {
-                Monitor<String> monitor = new Monitor<String>(null);
+                Monitor<String> monitor = new Monitor<>(null);
                 long now = systemTimer(UNITS[unit]);
-                boolean result = monitor.readAccess(
-                        value -> {
+                boolean result = monitor.read(
+                        entity -> {
                             fail("Never reach read access for false Predicate.");
                         },
                         x -> false,
                         DELAYS[unit], UNITS[unit]);
                 assertFalse(result,
-                        "Test Monitor.readAccess interrupt wait for units:" + UNITS[unit].toString());
+                        "Test Monitor.read interrupt wait for units:" + UNITS[unit].toString());
                 assertTrue(systemTimer(UNITS[unit]) >= toSystemUnits(DELAYS[unit], UNITS[unit]) + now,
-                        "Test Monitor.readAccess wasn't interrupted earlier for units:" + UNITS[unit].toString());
+                        "Check that Monitor.read wasn't interrupted earlier for units:" + UNITS[unit].toString());
             }
         }
     }
@@ -68,19 +67,19 @@ public class MonitorTimePrecisionTest {
     public void monitorPrecisionWriteTest() throws InterruptedException {
         for (int unit = 0; unit < UNITS.length; unit++) {
             for (int i = 0; i < REPEAT_COUNTS[unit]; i++) {
-                Monitor<String> monitor = new Monitor<String>(null);
+                Monitor<String> monitor = new Monitor<>(null);
                 long now = systemTimer(UNITS[unit]);
-                boolean result = monitor.writeAccess(
-                        value -> {
-                            fail("Never reach read access for false Predicate.");
+                boolean result = monitor.write(
+                        entity -> {
+                            fail("Never reach write access for false Predicate.");
                             return null;
                         },
                         x -> false,
                         DELAYS[unit], UNITS[unit]);
                 assertFalse(result,
-                        "Test Monitor.writeAccess interrupt wait for units:" + UNITS[unit].toString());
+                        "Test Monitor.write() interrupt wait for units:" + UNITS[unit].toString());
                 assertTrue(systemTimer(UNITS[unit]) >= toSystemUnits(DELAYS[unit], UNITS[unit]) + now,
-                        "Test Monitor.writeAccess wasn't interrupted earlier for units:" + UNITS[unit].toString());
+                        "Check that Monitor.write() wasn't interrupted earlier for units:" + UNITS[unit].toString());
             }
         }
     }
