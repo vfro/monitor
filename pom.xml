@@ -5,7 +5,7 @@
     <groupId>com.github.vfro</groupId>
     <artifactId>monitor</artifactId>
     <packaging>jar</packaging>
-    <version>4.0.0-SNAPSHOT</version>
+    <version>4.0.0</version>
     <name>Monitor</name>
     <description>Monitor project provides implementation of Monitor Concurrency Pattern.</description>
     <url>https://github.com/vfro/monitor</url>

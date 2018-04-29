@@ -137,7 +137,7 @@ consume CPU time.
         <dependency>
             <groupId>com.github.vfro</groupId>
             <artifactId>monitor</artifactId>
-            <version>4.0.0-SNAPSHOT</version>
+            <version>4.0.0</version>
         </dependency>
 ```
 
