@@ -4,12 +4,14 @@ import java.lang.ref.WeakReference;
 import java.lang.reflect.Method;
 
 /**
- * Sandbox can be used to access a copy of monitored entity.
- * It also provides Compare and Swap operation that can compare
- * monitored entities either by reference or by value.
+ * `Sandbox` class allows threads to create a local copy of monitored entity and
+ * then Compare and Swap the mutated or changed entity back to monitor. The
+ * `Entity` must be `Cloneable` in order to create its local copy.
  *
- * @author Volodymyr Frolov
- * @param <Entity> entity of the monitor.
+ * `Sandbox` instance is not reentrant. Each thread must create a local
+ * instance of `Sandbox`.
+
+ * @param <Entity> monitored entity type.
  */
 @SuppressWarnings("LocalVariableHidesMemberVariable")
 public final class Sandbox<Entity extends Cloneable> implements Cloneable {
@@ -19,7 +21,7 @@ public final class Sandbox<Entity extends Cloneable> implements Cloneable {
     private boolean pushResult;
 
     @SuppressWarnings({"unchecked", "UseSpecificCatch"})
-    private static <Entity> Entity cloneValue(Entity entity) {
+    private static <Entity> Entity cloneValue(final Entity entity) {
         Entity result = null;
         try {
             Method clone = entity.getClass().getDeclaredMethod("clone");
@@ -33,7 +35,7 @@ public final class Sandbox<Entity extends Cloneable> implements Cloneable {
     }
 
     /**
-     * Create a new instance of Sandbox with null as its entity.
+     * Create a new instance of Sandbox with null as its monitored entity.
      */
     public Sandbox() {
         this.entity = null;
@@ -42,56 +44,59 @@ public final class Sandbox<Entity extends Cloneable> implements Cloneable {
     }
 
     /**
-     * Create new instance of Sandbox and assign particular entity to it.
+     * Create new instance of Sandbox with monitored entity.
      *
-     * @param value initial entity of the sandbox.
+     * @param entity monitored entity.
      */
-    public Sandbox(Entity value) {
-        this.entity = value;
+    public Sandbox(final Entity entity) {
+        this.entity = entity;
         this.check = null;
     }
 
     /**
-     * Create new instance of Sandbox and {@link #pull(com.github.vfro.Monitor)} its
- entity from monitor.
+     * Create new instance of Sandbox and pull its entity from monitor.
      *
      * @param monitor initial entity is pulled from the monitor.
+     * @see com.github.vfro.Monitor
      */
-    public Sandbox(Monitor<Entity> monitor) {
+    public Sandbox(final Monitor<Entity> monitor) {
         super();
         this.pull(monitor);
     }
 
     /**
-     * Access entity help by Sandbox. If the entity was previously pulled from
- Monitor, then it is a copy of the entity contained in {@link Monitor}. The
-     * copy can be changed without locking the monitor.
+     * Access monitored entity. If the entity was previously pulled from
+     * {@link Monitor} then the copy of it is returned. The copy can be mutated
+     * without locking the monitor.
      *
-     * @return entity held by Sandbox.
+     * @return monitored entity.
+     * @see #set(java.lang.Cloneable)
      */
     public Entity get() {
         return this.entity;
     }
 
     /**
-     * Assign entity to Sandbox.
+     * Assign a new monitored entity to Sandbox.
      *
-     * @param value new entity for the sandbox.
+     * @param entity monitored entity.
      */
-    public void set(Entity value) {
-        this.entity = value;
+    public void set(final Entity entity) {
+        this.entity = entity;
     }
 
     /**
-     * Obtain entity from the monitor, assign its clone to sandbox and return the
- clone of obtained entity. Read access is used to obtain the entity. The
- entity is cloned before assigning it to sandbox, so it could be changed
- without locking the monitor.
+     * Access monitored entity in the monitor, assign its clone to sandbox and
+     * return the clone of obtained entity.
      *
-     * @param monitor the monitor to take entity from.
-     * @return the clone of entity obtained from monitor.
+     * Read access is used to obtain the entity. The entity is cloned before
+     * assigning it to sandbox, so later it could be mutated without locking the
+     * monitor.
+     *
+     * @param monitor the monitor to pull entity from.
+     * @return clone of monitored entity.
      */
-    public Entity pull(Monitor<Entity> monitor) {
+    public Entity pull(final Monitor<Entity> monitor) {
         monitor.read(
                 value -> {
                     this.set(cloneValue(value));
@@ -101,17 +106,24 @@ public final class Sandbox<Entity extends Cloneable> implements Cloneable {
         return this.entity;
     }
 
-    private boolean push(Monitor<Entity> monitor, final boolean force, final boolean byReference) {
+    private boolean push(
+            final Monitor<Entity> monitor,
+            final boolean force,
+            final boolean byReference) {
         monitor.write(value -> {
-                    this.pushResult = false;
-                    if (force
-                    || byReference && this.check != null && this.check.get() == value
-                    || !byReference && this.check != null && this.check.get().equals(value)) {
-                        this.pushResult = true;
-                        return this.entity;
-                    }
-                    return value;
-                });
+            this.pushResult = false;
+            if (force
+                    || byReference
+                        && this.check != null
+                        && this.check.get() == value
+                    || !byReference
+                        && this.check != null
+                        && this.check.get().equals(value)) {
+                this.pushResult = true;
+                return this.entity;
+            }
+            return value;
+        });
 
         if (this.pushResult) {
             check = new WeakReference<>(entity);
@@ -121,35 +133,35 @@ public final class Sandbox<Entity extends Cloneable> implements Cloneable {
     }
 
     /**
-     * Unconditionally set entity of the sandbox to monitor.
+     * Unconditionally change monitored entity of the monitor.
      *
      * @param monitor the monitor to set the entity to.
      */
-    void push(Monitor<Entity> monitor) {
+    void push(final Monitor<Entity> monitor) {
         this.push(monitor, true, false);
     }
 
     /**
-     * Compare monitor`s entity with the sandbox entity by reference and set it to
- monitor if the reference is the same.
+     * Compare monitored entity with the sandbox copy by reference and set it
+     * to monitor if the reference is the same.
      *
      * @param monitor the monitor to set the entity to.
      * @return true if comparison was successful and entity was set to monitor,
- or false otherwise.
+     * or false otherwise.
      */
-    public boolean casByReference(Monitor<Entity> monitor) {
+    public boolean casByReference(final Monitor<Entity> monitor) {
         return this.push(monitor, false, true);
     }
 
     /**
-     * Compare monitor`s entity with the sandbox entity by entity and set it to
- monitor if the entity is the same.
+     * Compare monitored entity with the sandbox copy by value and set it
+     * to monitor if the reference is the same.
      *
      * @param monitor the monitor to set the entity to.
      * @return true if comparison was successful and entity was set to monitor,
- or false otherwise.
+     * or false otherwise.
      */
-    public boolean casByValue(Monitor<Entity> monitor) {
+    public boolean casByValue(final Monitor<Entity> monitor) {
         return this.push(monitor, false, false);
     }
 
@@ -167,11 +179,11 @@ public final class Sandbox<Entity extends Cloneable> implements Cloneable {
      * Check if sandbox entity is equal to other`s sandbox entity.
      *
      * @param same the other sandbox.
-     * @return true if the other`s sandbox entity is the same.
+     * @return true if the entity in other sandbox is the same.
      */
     @Override
     @SuppressWarnings("unchecked")
-    public boolean equals(Object same) {
+    public boolean equals(final Object same) {
         if (same == null
                 || !this.getClass().equals(same.getClass())) {
             return false;

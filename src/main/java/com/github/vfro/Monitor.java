@@ -22,17 +22,17 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  *
  * // ... monitoring thread
  * while(true) {
- *    // Wait for a new string added to the queue and print it
+ *    // wait for a new string in queue
  *    outputQueue.write(
  *       queue -&gt; {
  *             System.out.println(queue.pull());
  *
- *             // Write access lambda must return the argument object
+ *             // write access lambda must return its argument
  *             // to preserve reference to the queue
  *             return queue;
  *          },
  *
- *       // Wake up when the queue is not empty
+ *       // wake up when the queue is not empty
  *       queue -&gt; !queue.isEmpty()
  *    );
  * }
@@ -73,7 +73,7 @@ public class Monitor<Entity> {
      * @see #set(java.lang.Object)
      * @see #getEntity()
      */
-    protected void setEntity(Entity entity) {
+    protected void setEntity(final Entity entity) {
         this.entity = entity;
     }
 
@@ -113,7 +113,7 @@ public class Monitor<Entity> {
         private final long time;
         private final TimeUnit unit;
 
-        TimeTracker(long time, TimeUnit unit) {
+        TimeTracker(final long time, final TimeUnit unit) {
             this.time = time;
             this.unit = unit;
             this.origin = systemTimer(unit);
@@ -124,12 +124,12 @@ public class Monitor<Entity> {
         }
 
         long timeLeft() {
-            long timer = systemTimer(this.unit);
+            final long timer = systemTimer(this.unit);
             return this.origin
                     - timer + toSystemTimerUnits(this.time, this.unit);
         }
 
-        static TimeUnit systemUnit(TimeUnit unit) {
+        static TimeUnit systemUnit(final TimeUnit unit) {
             if (unit == TimeUnit.NANOSECONDS
                     || unit == TimeUnit.MICROSECONDS) {
                 return TimeUnit.NANOSECONDS;
@@ -137,7 +137,7 @@ public class Monitor<Entity> {
             return TimeUnit.MILLISECONDS;
         }
 
-        private static long systemTimer(TimeUnit unit) {
+        private static long systemTimer(final TimeUnit unit) {
             if (unit == TimeUnit.NANOSECONDS
                     || unit == TimeUnit.MICROSECONDS) {
                 return System.nanoTime();
@@ -145,16 +145,20 @@ public class Monitor<Entity> {
             return System.currentTimeMillis();
         }
 
-        private static long toSystemTimerUnits(long time, TimeUnit unit) {
+        private static long toSystemTimerUnits(
+                final long time,
+                final TimeUnit unit) {
             return systemUnit(unit).convert(time, unit);
         }
     };
 
     private boolean accessByTime(
-            Function<Entity, Entity> function, Predicate<Entity> predicate,
-            long time, TimeUnit unit, boolean isWrite
+            final Function<Entity, Entity> function,
+            final Predicate<Entity> predicate,
+            final long time, final TimeUnit unit,
+            final boolean isWrite
     ) throws InterruptedException {
-        TimeTracker timeTracker = new TimeTracker(time, unit);
+        final TimeTracker timeTracker = new TimeTracker(time, unit);
         Lock aquiredLock = null;
 
         try {
@@ -197,13 +201,13 @@ public class Monitor<Entity> {
     }
 
     private void accessByPredicate(
-            Function<Entity, Entity> function,
-            Predicate<Entity> predicate,
-            boolean isWrite
+            final Function<Entity, Entity> function,
+            final Predicate<Entity> predicate,
+            final boolean isWrite
     ) throws InterruptedException {
         Lock aquiredLock = null;
         try {
-            Lock tryLock = this.getWriteLock();
+            final Lock tryLock = this.getWriteLock();
             tryLock.lockInterruptibly();
             aquiredLock = tryLock;
 
@@ -218,7 +222,7 @@ public class Monitor<Entity> {
             } else {
                 // Write lock used for evaluating predicate
                 // now must be downgraded.
-                Lock downgradedLock = this.getReadLock();
+                final Lock downgradedLock = this.getReadLock();
                 downgradedLock.lockInterruptibly();
                 aquiredLock.unlock();
                 aquiredLock = downgradedLock;
@@ -236,9 +240,9 @@ public class Monitor<Entity> {
      *
      * @param entity monitored entity.
      */
-    public Monitor(Entity entity) {
+    public Monitor(final Entity entity) {
         this.entity = entity;
-        ReadWriteLock readWriteLock = new ReentrantReadWriteLock();
+        final ReadWriteLock readWriteLock = new ReentrantReadWriteLock();
         this.readLock = readWriteLock.readLock();
         this.writeLock = readWriteLock.writeLock();
         this.condition = this.writeLock.newCondition();
@@ -256,7 +260,10 @@ public class Monitor<Entity> {
      * {@code readLock}.
      * @see java.util.concurrent.locks.ReentrantReadWriteLock
      */
-    protected Monitor(Entity entity, Lock readLock, Lock writeLock) {
+    protected Monitor(
+            final Entity entity,
+            final Lock readLock,
+            final Lock writeLock) {
         this.entity = entity;
         this.readLock = readLock;
         this.writeLock = writeLock;
@@ -272,8 +279,8 @@ public class Monitor<Entity> {
      * @see #read(java.util.function.Consumer, java.util.function.Predicate,
      * long, java.util.concurrent.TimeUnit)
      */
-    public final void read(Consumer<Entity> consumer) {
-        Lock lock = this.getReadLock();
+    public final void read(final Consumer<Entity> consumer) {
+        final Lock lock = this.getReadLock();
         try {
             lock.lock();
             consumer.accept(this.getEntity());
@@ -295,7 +302,8 @@ public class Monitor<Entity> {
      * long, java.util.concurrent.TimeUnit)
      */
     public final void read(
-            Consumer<Entity> consumer, Predicate<Entity> predicate
+            final Consumer<Entity> consumer,
+            final Predicate<Entity> predicate
     ) throws InterruptedException {
         accessByPredicate(
                 entity -> {
@@ -323,8 +331,9 @@ public class Monitor<Entity> {
      * @see #read(java.util.function.Consumer, java.util.function.Predicate)
      */
     public final boolean read(
-            Consumer<Entity> consumer, Predicate<Entity> predicate,
-            long time, TimeUnit unit
+            final Consumer<Entity> consumer,
+            final Predicate<Entity> predicate,
+            final long time, final TimeUnit unit
     ) throws InterruptedException {
         return this.accessByTime(
                 entity -> {
@@ -346,8 +355,8 @@ public class Monitor<Entity> {
      * @see #write(java.util.function.Function, java.util.function.Predicate,
      * long, java.util.concurrent.TimeUnit)
      */
-    public final void write(Function<Entity, Entity> function) {
-        Lock lock = this.getWriteLock();
+    public final void write(final Function<Entity, Entity> function) {
+        final Lock lock = this.getWriteLock();
         try {
             lock.lock();
             this.setEntity(function.apply(this.getEntity()));
@@ -372,8 +381,8 @@ public class Monitor<Entity> {
      * long, java.util.concurrent.TimeUnit)
      */
     public final void write(
-            Function<Entity, Entity> function,
-            Predicate<Entity> predicate
+            final Function<Entity, Entity> function,
+            final Predicate<Entity> predicate
     ) throws InterruptedException {
         this.accessByPredicate(function, predicate, true);
     }
@@ -397,9 +406,9 @@ public class Monitor<Entity> {
      * @see #write(java.util.function.Function, java.util.function.Predicate)
      */
     public final boolean write(
-            Function<Entity, Entity> function,
-            Predicate<Entity> predicate,
-            long time, TimeUnit unit
+            final Function<Entity, Entity> function,
+            final Predicate<Entity> predicate,
+            final long time, final TimeUnit unit
     ) throws InterruptedException {
         return this.accessByTime(function, predicate, time, unit, true);
     }
@@ -410,8 +419,8 @@ public class Monitor<Entity> {
      * @param entity new monitored entity.
      * @see #swap(java.lang.Object)
      */
-    public final void set(Entity entity) {
-        Lock lock = this.getWriteLock();
+    public final void set(final Entity entity) {
+        final Lock lock = this.getWriteLock();
         try {
             lock.lock();
             this.setEntity(entity);
@@ -428,9 +437,9 @@ public class Monitor<Entity> {
      * @return previous monitored entity.
      * @see #set(java.lang.Object)
      */
-    public final Entity swap(Entity entity) {
+    public final Entity swap(final Entity entity) {
         Entity previousEntity;
-        Lock lock = this.getWriteLock();
+        final Lock lock = this.getWriteLock();
         try {
             lock.lock();
             previousEntity = this.getEntity();

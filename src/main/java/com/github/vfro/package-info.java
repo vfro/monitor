@@ -1,5 +1,5 @@
 /**
- * Monitor Concurrency Pattern
+ * Java implementation of Monitor Concurrency Pattern.
  *
  * @author Volodymyr Frolov
  */
