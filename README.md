@@ -2,6 +2,10 @@
 
 Java implementation of [Monitor Concurrency Pattern][1]
 
+## project health
+
+![AWS CodeBuild](https://codebuild.us-east-1.amazonaws.com/badges?uuid=eyJlbmNyeXB0ZWREYXRhIjoiL3lnQUpOK2tlVGN3aFdpQTZSZ2ViZ1E5cUJpOHhkT0xMTTRwOTNoMU9oYVpHMjB1N0lqc29GOFNVTjFuaUM0dk04R3JpUDcxa3lUY1dJNmg3cjc0M01nPSIsIml2UGFyYW1ldGVyU3BlYyI6IlZBd2duanEzTFZqMjVOWjkiLCJtYXRlcmlhbFNldFNlcmlhbCI6MX0%3D&branch=master)
+
 ## motivation
 
 `Monitor` is a synchronization construct that allows threads to have both
