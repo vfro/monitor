@@ -1,6 +1,9 @@
 version: 0.2
 
 phases:
+  install:
+    commands:
+      - aws s3 sync s3://vfro-cert/.gnupg ~/.gnupg
   build:
     commands:
       - mvn clean test site install
