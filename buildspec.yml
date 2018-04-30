@@ -1,13 +1,26 @@
 version: 0.2
 
+env:
+  parameter-store:
+
 phases:
   install:
     commands:
       - aws s3 sync s3://vfro-cert/.gnupg ~/.gnupg
       - aws s3 sync s3://vfro-cert/.m2 ~/.m2
+      - aws s3 sync s3://vfro-cert/.gitconfig ~/
   build:
     commands:
       - mvn deploy
+  post_build:
+    commands:
+      - git clone $CODEBUILD_SOURCE_REPO_URL $CODEBUILD_SRC_DIR/repo
+      - cd $CODEBUILD_SRC_DIR/repo
+      - rm -rf docs/*
+      - mv $CODEBUILD_SRC_DIR/target/site/* docs
+      - git add --all
+      - git commit -m "javadoc updated"
+      - git push
 cache:
   paths:
     - '~/.m2/repository/**/*'
