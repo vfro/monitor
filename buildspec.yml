@@ -8,7 +8,7 @@ phases:
       - aws s3 sync s3://vfro-cert/.gitconfig ~/
   build:
     commands:
-      - mvn deploy
+      - mvn site deploy
   post_build:
     commands:
       - git clone $CODEBUILD_SOURCE_REPO_URL $CODEBUILD_SRC_DIR/repo
