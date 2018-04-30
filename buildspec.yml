@@ -8,9 +8,10 @@ phases:
   install:
     commands:
       - aws s3 sync s3://vfro-cert/.gnupg ~/.gnupg
+      - aws s3 sync s3://vfro-cert/.m2 ~/.m2
   build:
     commands:
-      - mvn clean test site install -Dgpg.passphrase=$GPG_PASSPHRASE
+      - mvn deploy -Dgpg.passphrase=$GPG_PASSPHRASE
 cache:
   paths:
-    - '~/.m2/**/*'
+    - '~/.m2/repository/**/*'
