@@ -17,7 +17,7 @@ phases:
       - mv $CODEBUILD_SRC_DIR/target/site/* docs
       - git add --all
       - git commit -m "javadoc updated"
-      - git push
+      - git push $CODEBUILD_SOURCE_REPO_URL
 cache:
   paths:
     - '~/.m2/repository/**/*'
