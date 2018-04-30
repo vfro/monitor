@@ -6,4 +6,4 @@ phases:
       - aws s3 sync s3://vfro-cert/.gnupg ~/.gnupg
   build:
     commands:
-      - mvn clean test site install
+      - mvn clean test site install -Dgpg.passphrase=$GPG_PASSPHRASE
