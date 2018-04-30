@@ -2,10 +2,6 @@
 
 Java implementation of [Monitor Concurrency Pattern][1]
 
-## project health
-
-![AWS CodeBuild](https://codebuild.us-east-1.amazonaws.com/badges?uuid=eyJlbmNyeXB0ZWREYXRhIjoiL3lnQUpOK2tlVGN3aFdpQTZSZ2ViZ1E5cUJpOHhkT0xMTTRwOTNoMU9oYVpHMjB1N0lqc29GOFNVTjFuaUM0dk04R3JpUDcxa3lUY1dJNmg3cjc0M01nPSIsIml2UGFyYW1ldGVyU3BlYyI6IlZBd2duanEzTFZqMjVOWjkiLCJtYXRlcmlhbFNldFNlcmlhbCI6MX0%3D&branch=master)
-
 ## motivation
 
 `Monitor` is a synchronization construct that allows threads to have both
@@ -135,7 +131,17 @@ an overhead for blocking and resuming threads it could be more effective it case
 of mid- or long-term blocks and waits as blocked and waiting threads do not
 consume CPU time. 
 
-## dependency in pom.xml
+## installation and usage
+
+### requirements
+
+Java 8 or higher
+
+### license 
+
+[Apache License Version 2.0](https://raw.githubusercontent.com/vfro/monitor/master/LICENSE)
+
+### declaring dependency in pom.xml
 
 ```xml
         <dependency>
@@ -144,6 +150,9 @@ consume CPU time.
             <version>4.0.0</version>
         </dependency>
 ```
+### project health
+
+![AWS CodeBuild](https://codebuild.us-east-1.amazonaws.com/badges?uuid=eyJlbmNyeXB0ZWREYXRhIjoiL3lnQUpOK2tlVGN3aFdpQTZSZ2ViZ1E5cUJpOHhkT0xMTTRwOTNoMU9oYVpHMjB1N0lqc29GOFNVTjFuaUM0dk04R3JpUDcxa3lUY1dJNmg3cjc0M01nPSIsIml2UGFyYW1ldGVyU3BlYyI6IlZBd2duanEzTFZqMjVOWjkiLCJtYXRlcmlhbFNldFNlcmlhbCI6MX0%3D&branch=master)
 
   [1]: https://en.wikipedia.org/wiki/Monitor_(synchronization)
   [2]: https://vfro.github.io/monitor
