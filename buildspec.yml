@@ -1,9 +1,5 @@
 version: 0.2
 
-env:
-  parameter-store:
-    GPG_PASSPHRASE: "GPG_PASSPHRASE"
-
 phases:
   install:
     commands:
@@ -11,7 +7,7 @@ phases:
       - aws s3 sync s3://vfro-cert/.m2 ~/.m2
   build:
     commands:
-      - mvn deploy -Dgpg.passphrase=$GPG_PASSPHRASE
+      - mvn deploy
 cache:
   paths:
     - '~/.m2/repository/**/*'
