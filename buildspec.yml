@@ -1,5 +1,10 @@
 version: 0.2
 
+env:
+  parameter-store:
+    GIT_USER: "GIT_USER"
+    GIT_PASS: "GIT_PASS"
+
 phases:
   install:
     commands:
@@ -17,7 +22,7 @@ phases:
       - mv $CODEBUILD_SRC_DIR/target/site/* docs
       - git add --all
       - git commit -m "javadoc updated"
-      - git push $CODEBUILD_SOURCE_REPO_URL
+      - git push https://$GIT_USER:$GIT_PASS@github.com/vfro/monitor
 cache:
   paths:
     - '~/.m2/repository/**/*'
