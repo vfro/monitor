@@ -1,5 +1,9 @@
 version: 0.2
 
+env:
+  parameter-store:
+    GPG_PASSPHRASE: "GPG_PASSPHRASE"
+
 phases:
   install:
     commands:
@@ -7,3 +11,6 @@ phases:
   build:
     commands:
       - mvn clean test site install -Dgpg.passphrase=$GPG_PASSPHRASE
+cache:
+  paths:
+    - '~/.m2/**/*'
