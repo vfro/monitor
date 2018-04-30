@@ -1,8 +1,5 @@
 version: 0.2
 
-env:
-  parameter-store:
-
 phases:
   install:
     commands:
