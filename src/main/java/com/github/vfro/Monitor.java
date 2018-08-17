@@ -1,8 +1,8 @@
 package com.github.vfro;
 
 import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.function.UnaryOperator;
 
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
@@ -153,7 +153,7 @@ public class Monitor<Entity> {
     };
 
     private boolean accessByTime(
-            final Function<Entity, Entity> function,
+            final UnaryOperator<Entity> operator,
             final Predicate<Entity> predicate,
             final long time, final TimeUnit unit,
             final boolean isWrite
@@ -182,7 +182,7 @@ public class Monitor<Entity> {
             }
 
             if (isWrite) {
-                this.setEntity(function.apply(this.getEntity()));
+                this.setEntity(operator.apply(this.getEntity()));
                 this.condition.signalAll();
             } else {
                 // Write lock used for evaluating predicate
@@ -190,7 +190,7 @@ public class Monitor<Entity> {
                 this.getReadLock().lock();
                 aquiredLock.unlock();
                 aquiredLock = this.getReadLock();
-                function.apply(this.getEntity());
+                operator.apply(this.getEntity());
             }
         } finally {
             if (aquiredLock != null) {
@@ -201,7 +201,7 @@ public class Monitor<Entity> {
     }
 
     private void accessByPredicate(
-            final Function<Entity, Entity> function,
+            final UnaryOperator<Entity> operator,
             final Predicate<Entity> predicate,
             final boolean isWrite
     ) throws InterruptedException {
@@ -217,7 +217,7 @@ public class Monitor<Entity> {
             }
 
             if (isWrite) {
-                this.setEntity(function.apply(this.getEntity()));
+                this.setEntity(operator.apply(this.getEntity()));
                 this.condition.signalAll();
             } else {
                 // Write lock used for evaluating predicate
@@ -226,7 +226,7 @@ public class Monitor<Entity> {
                 downgradedLock.lockInterruptibly();
                 aquiredLock.unlock();
                 aquiredLock = downgradedLock;
-                function.apply(this.getEntity());
+                operator.apply(this.getEntity());
             }
         } finally {
             if (aquiredLock != null) {
@@ -347,19 +347,19 @@ public class Monitor<Entity> {
     /**
      * Access monitored entity in exclusive mode.
      *
-     * Return value of function becomes new monitored entity.
+     * Return value of operator becomes new monitored entity.
      *
-     * @param function exclusively access monitored entity. The function may
+     * @param operator exclusively access monitored entity. The operator may
      * mutate monitored entity or replace it with a new one.
-     * @see #write(java.util.function.Function, java.util.function.Predicate)
-     * @see #write(java.util.function.Function, java.util.function.Predicate,
+     * @see #write(java.util.function.UnaryOperator, java.util.function.Predicate)
+     * @see #write(java.util.function.UnaryOperator, java.util.function.Predicate,
      * long, java.util.concurrent.TimeUnit)
      */
-    public final void write(final Function<Entity, Entity> function) {
+    public final void write(final UnaryOperator<Entity> operator) {
         final Lock lock = this.getWriteLock();
         try {
             lock.lock();
-            this.setEntity(function.apply(this.getEntity()));
+            this.setEntity(operator.apply(this.getEntity()));
             this.condition.signalAll();
         } finally {
             lock.unlock();
@@ -370,30 +370,30 @@ public class Monitor<Entity> {
      * Wait for monitored entity to mutate or change to a desirable state and
      * access it in exclusive mode.
      *
-     * Return value of function becomes new monitored entity.
+     * Return value of operator becomes new monitored entity.
      *
-     * @param function exclusively access monitored entity. The function may
+     * @param operator exclusively access monitored entity. The operator may
      * mutate monitored entity or replace it with a new one.
      * @param predicate a desirable state.
      * @throws InterruptedException if the current thread is interrupted.
-     * @see #write(java.util.function.Function)
-     * @see #write(java.util.function.Function, java.util.function.Predicate,
+     * @see #write(java.util.function.UnaryOperator)
+     * @see #write(java.util.function.UnaryOperator, java.util.function.Predicate,
      * long, java.util.concurrent.TimeUnit)
      */
     public final void write(
-            final Function<Entity, Entity> function,
+            final UnaryOperator<Entity> operator,
             final Predicate<Entity> predicate
     ) throws InterruptedException {
-        this.accessByPredicate(function, predicate, true);
+        this.accessByPredicate(operator, predicate, true);
     }
 
     /**
      * Wait for monitored entity to mutate or change to a desirable state and
      * access it in exclusive mode.
      *
-     * Return value of function becomes new monitored entity.
+     * Return value of operator becomes new monitored entity.
      *
-     * @param function exclusively access monitored entity. The function may
+     * @param operator exclusively access monitored entity. The operator may
      * mutate monitored entity or replace it with a new one.
      * @param predicate a desirable state.
      * @param time the maximum time to wait.
@@ -402,15 +402,15 @@ public class Monitor<Entity> {
      * {@code false} if the waiting time detectably elapsed before return from
      * the method.
      * @throws InterruptedException if the current thread is interrupted.
-     * @see #write(java.util.function.Function)
-     * @see #write(java.util.function.Function, java.util.function.Predicate)
+     * @see #write(java.util.function.UnaryOperator)
+     * @see #write(java.util.function.UnaryOperator, java.util.function.Predicate)
      */
     public final boolean write(
-            final Function<Entity, Entity> function,
+            final UnaryOperator<Entity> operator,
             final Predicate<Entity> predicate,
             final long time, final TimeUnit unit
     ) throws InterruptedException {
-        return this.accessByTime(function, predicate, time, unit, true);
+        return this.accessByTime(operator, predicate, time, unit, true);
     }
 
     /**
