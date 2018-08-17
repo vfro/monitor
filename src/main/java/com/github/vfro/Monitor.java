@@ -150,7 +150,7 @@ public class Monitor<Entity> {
                 final TimeUnit unit) {
             return systemUnit(unit).convert(time, unit);
         }
-    };
+    }
 
     private boolean accessByTime(
             final UnaryOperator<Entity> operator,
@@ -159,12 +159,12 @@ public class Monitor<Entity> {
             final boolean isWrite
     ) throws InterruptedException {
         final TimeTracker timeTracker = new TimeTracker(time, unit);
-        Lock aquiredLock = null;
+        Lock acquiredLock = null;
 
         try {
             Lock tryLock = this.getWriteLock();
             if (tryLock.tryLock(time, TimeTracker.systemUnit(unit))) {
-                aquiredLock = tryLock;
+                acquiredLock = tryLock;
             } else {
                 return false;
             }
@@ -188,13 +188,13 @@ public class Monitor<Entity> {
                 // Write lock used for evaluating predicate
                 // now must be downgraded.
                 this.getReadLock().lock();
-                aquiredLock.unlock();
-                aquiredLock = this.getReadLock();
+                acquiredLock.unlock();
+                acquiredLock = this.getReadLock();
                 operator.apply(this.getEntity());
             }
         } finally {
-            if (aquiredLock != null) {
-                aquiredLock.unlock();
+            if (acquiredLock != null) {
+                acquiredLock.unlock();
             }
         }
         return true;
@@ -205,11 +205,11 @@ public class Monitor<Entity> {
             final Predicate<Entity> predicate,
             final boolean isWrite
     ) throws InterruptedException {
-        Lock aquiredLock = null;
+        Lock acquiredLock = null;
         try {
             final Lock tryLock = this.getWriteLock();
             tryLock.lockInterruptibly();
-            aquiredLock = tryLock;
+            acquiredLock = tryLock;
 
             // Concurrent predicates examine monitored entity exclusively.
             while (!predicate.test(this.getEntity())) {
@@ -224,13 +224,13 @@ public class Monitor<Entity> {
                 // now must be downgraded.
                 final Lock downgradedLock = this.getReadLock();
                 downgradedLock.lockInterruptibly();
-                aquiredLock.unlock();
-                aquiredLock = downgradedLock;
+                acquiredLock.unlock();
+                acquiredLock = downgradedLock;
                 operator.apply(this.getEntity());
             }
         } finally {
-            if (aquiredLock != null) {
-                aquiredLock.unlock();
+            if (acquiredLock != null) {
+                acquiredLock.unlock();
             }
         }
     }
