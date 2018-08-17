@@ -147,7 +147,7 @@ Java 8 or higher
         <dependency>
             <groupId>com.github.vfro</groupId>
             <artifactId>monitor</artifactId>
-            <version>4.0.0</version>
+            <version>4.0.2</version>
         </dependency>
 ```
 ### project health
